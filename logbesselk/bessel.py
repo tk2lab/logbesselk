@@ -32,21 +32,32 @@ def _log_bessel_common(v, x, deriv0):
     dtype = (v * x).dtype
 
     tol = tf.constant(np.finfo(dtype.as_numpy_dtype).eps, dtype)
-    tol_dt = tf.constant(1e-5, dtype)
+    tol_dt = tf.constant(1e-4, dtype)
     max_iter = 100
-    bins = 256
+    bins = 256 if dtype == tf.float64 else 128
 
     zero = tf.zeros(shape, dtype)
     one = tf.ones(shape, dtype)
+    small = tf.fill(shape, tf.constant(1e-10, dtype=dtype))
 
     deriv1 = get_deriv_func(deriv0)
     deriv2 = get_deriv_func(deriv1)
 
+    t0 = tf.where((deriv1(zero) == 0) & (deriv2(zero) > small), small, zero)
     dt = tf.where((deriv1(zero) > 0) | (deriv2(zero) > 0), one, zero) 
-    tp = find_zero(deriv1, zero, dt, tol_dt, max_iter)
-    th = deriv0(tp) + log(tol)
-    te = find_zero(derivth, tp, one, tol_dt, max_iter)
+    tp = find_zero(deriv1, t0, dt, tol_dt, max_iter)
 
-    h = te / bins
-    t = tf.linspace(0.5 * h, te - 0.5 * h, bins)
+    th = deriv0(tp) + log(tol)
+
+    dt = tf.where(derivth(zero) < 0, tp, zero)
+    ts = zero #find_zero(derivth, zero, dt, tol_dt, max_iter) 
+    te = find_zero(derivth, tp, one, tol_dt, max_iter)
+    d0 = deriv0(tp)
+    #tf.print('f(0)', derivth(zero))
+    #tf.print('f(ts)', derivth(ts))
+    #tf.print('f(tp)', derivth(tp))
+    #tf.print('f(te)', derivth(te))
+
+    h = (te - ts) / bins
+    t = tf.linspace(ts + 0.5 * h, te - 0.5 * h, bins)
     return log_sum_exp(deriv0(t), axis=0) + log(h)

@@ -30,6 +30,7 @@ def eval_prec(csvfile, dtype, func):
     t = df['k']
     s = func(v, x).numpy()
     err_s = np.abs(s / t - 1)
+    #print(err_s)
     print(err_s.mean(), err_s.std())
 
 
@@ -37,8 +38,8 @@ def eval_time(func, dtype, size, repeat):
     wrap_func = tf.function(lambda v, x: func(v, x))
     timer = Timer()
     for i in range(repeat + 1):
-        v = 10 ** (6 * tf.random.uniform((size,), dtype=dtype))
-        x = 10 ** (6 * tf.random.uniform((size,), dtype=dtype))
+        v = 10 ** (3 * tf.random.uniform((size,), dtype=dtype))
+        x = 10 ** (3 * tf.random.uniform((size,), dtype=dtype))
         with timer:
             wrap_func(v, x)
     print(
@@ -51,6 +52,7 @@ def eval_time(func, dtype, size, repeat):
 if __name__ == '__main__':
 
     for dtype in [np.float32, np.float64]:
+        print(f'dtype: {dtype}')
         eval_prec('tests/true_log_k.csv', dtype,
             lambda v, x: tfp.math.log_bessel_kve(v, x) - x,
         )
