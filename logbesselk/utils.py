@@ -34,12 +34,12 @@ def extend(func, x, dx):
     return x0, x1, f0, f1
 
 
-def find_zero(func, x, dx, tol, max_iter):
+def find_zero(func, x, dx, tol, max_iter=None):
 
-    def cond(x0, x1, f0, f1, diff):
-        return tf.reduce_any(tf.abs(diff) > tol)
+    def cond(x0, x1, f0, f1, cond):
+        return tf.reduce_any(cond)
 
-    def body(x0, x1, f0, f1, diff):
+    def body(x0, x1, f0, f1, cond):
         x_newton = x0 - f0 / deriv(x0)
         x_shrink = x0 + (x1 - x0) / 2
 
@@ -60,11 +60,11 @@ def find_zero(func, x, dx, tol, max_iter):
         f1_tmp = tf.where(f0 * f0_new <= 0, f0, f1)
         x1_new = tf.where(f_other * f0_new <= 0, x_other, x1_tmp)
         f1_new = tf.where(f_other * f0_new <= 0, f_other, f1_tmp)
-        return x0_new, x1_new, f0_new, f1_new, x0_new - x0
+        return x0_new, x1_new, f0_new, f1_new, tf.abs(x0_new - x0) > tol
 
     deriv = get_deriv_func(func)
     x0, x1, f0, f1 = extend(func, x, dx)
-    init = x0, x1, f0, f1, x0 - x1
+    init = x0, x1, f0, f1, tf.ones_like(x0, tf.bool)
     return tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
 
 

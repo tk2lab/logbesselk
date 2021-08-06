@@ -24,39 +24,34 @@ def log_bessel_dkdx(v, x):
 
 
 def _log_bessel_common(v, x, deriv0):
-
-    def derivth(t):
-        return deriv0(t) - th
-
-    shape = tf.shape(v * x)
     dtype = (v * x).dtype
-
     tol = tf.constant(np.finfo(dtype.as_numpy_dtype).eps, dtype)
     tol_dt = tf.constant(1e-4, dtype)
-    max_iter = 100
-    bins = 256 if dtype == tf.float64 else 128
-
-    zero = tf.zeros(shape, dtype)
-    one = tf.ones(shape, dtype)
-    small = tf.fill(shape, tf.constant(1e-10, dtype=dtype))
+    small = tf.constant(1e-10, dtype)
+    bins = 128
 
     deriv1 = get_deriv_func(deriv0)
     deriv2 = get_deriv_func(deriv1)
 
-    t0 = tf.where((deriv1(zero) == 0) & (deriv2(zero) > small), small, zero)
+    shape = tf.shape(v * x)
+    zero = tf.zeros(shape, dtype)
+    one = tf.ones(shape, dtype)
+    small = tf.fill(shape, small)
+
+    t0 = tf.where((deriv1(zero) == 0) & (deriv1(small) > 0), small, zero)
     dt = tf.where((deriv1(zero) > 0) | (deriv2(zero) > 0), one, zero) 
-    tp = find_zero(deriv1, t0, dt, tol_dt, max_iter)
+    tp = find_zero(deriv1, t0, dt, tol_dt)
 
     th = deriv0(tp) + log(tol)
+    derivth = lambda t: deriv0(t) - th
 
     dt = tf.where(derivth(zero) < 0, tp, zero)
-    ts = zero #find_zero(derivth, zero, dt, tol_dt, max_iter) 
-    te = find_zero(derivth, tp, one, tol_dt, max_iter)
-    d0 = deriv0(tp)
-    #tf.print('f(0)', derivth(zero))
-    #tf.print('f(ts)', derivth(ts))
-    #tf.print('f(tp)', derivth(tp))
-    #tf.print('f(te)', derivth(te))
+    ts = find_zero(derivth, zero, dt, tol_dt)
+    te = find_zero(derivth, tp, one, tol_dt)
+
+    sc = tf.where(tp > 0, tp, one)
+    ts = tf.math.minimum(ts, tf.math.maximum(sc * (1 - bins * tol), zero))
+    te = tf.math.maximum(te, sc * (1 + bins * tol))
 
     h = (te - ts) / bins
     t = tf.linspace(ts + 0.5 * h, te - 0.5 * h, bins)
