@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "logbesselk"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = ["TAKEKAWA Takashi <takekawa@tk2lab.org>"]
 

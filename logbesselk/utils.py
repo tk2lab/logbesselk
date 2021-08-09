@@ -28,13 +28,12 @@ def extend(func, x, dx):
 
     x0, x1 = x, x + dx
     f0, f1 = func(x0), func(x1)
-    x0, x1, f0, f1, _ = tf.while_loop(
-        cond, body, (x0, x1, f0, f1, f0 * f1 > 0),
-    )
+    init = x0, x1, f0, f1, f0 * f1 > 0
+    x0, x1, f0, f1, _ = tf.while_loop(cond, body, init)
     return x0, x1, f0, f1
 
 
-def find_zero(func, x, dx, tol, max_iter=None):
+def find_zero(func, x, dx, tol):
 
     def cond(x0, x1, f0, f1, cond):
         return tf.reduce_any(cond)
@@ -60,31 +59,11 @@ def find_zero(func, x, dx, tol, max_iter=None):
         f1_tmp = tf.where(f0 * f0_new <= 0, f0, f1)
         x1_new = tf.where(f_other * f0_new <= 0, x_other, x1_tmp)
         f1_new = tf.where(f_other * f0_new <= 0, f_other, f1_tmp)
-        return x0_new, x1_new, f0_new, f1_new, tf.abs(x0_new - x0) > tol
+        cond = tf.abs(x0_new - x0) > tf.math.maximum(x0, x1) * tol
+        return x0_new, x1_new, f0_new, f1_new, cond
 
     deriv = get_deriv_func(func)
     x0, x1, f0, f1 = extend(func, x, dx)
     init = x0, x1, f0, f1, tf.ones_like(x0, tf.bool)
-    return tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
-
-
-def find_zero_false_position(func, x, dx, tol, max_iter):
-
-    def cond(x0, x1, f0, f1):
-        return tf.reduce_any(tf.abs(x0 - x1) > tol)
-
-    def body(x0, x1, f0, f1):
-        x_new = x0 - f0 * (x1 - x0) / (f1 - f0)
-        f_new = func(x_new)
-
-        cond = f0 * f_new > 0
-        x0_new = tf.where(cond, x_new, x0)
-        f0_new = tf.where(cond, f_new, f0)
-        x1_new = tf.where(cond, x1, x_new)
-        f1_new = tf.where(cond, f1, f_new)
-        return x0_new, x1_new, f0_new, f1_new
-
-    init = extend(func, x, dx)
-    return tf.while_loop(
-        cond, body, init, maximum_iterations=max_iter,
-    )[0]
+    x0, x1, f0, f1, _ = tf.while_loop(cond, body, init)
+    return x0
