@@ -50,11 +50,11 @@ def log_cosh(x):
 
 def sinc(x):
     pix = np.pi * x
-    return tf.where(tf.equal(x, 0.), 1., sin(pix) / pix)
+    return tf.where(tf.equal(x, 0.), tf.ones_like(x), sin(pix) / pix)
 
 
 def sinhc(x):
-    return tf.where(tf.equal(x, 0.), 1., sinh(x) / x)
+    return tf.where(tf.equal(x, 0.), tf.ones_like(x), sinh(x) / x)
 
 
 def log_add_exp(x, y):

@@ -6,13 +6,15 @@ from . import math as tk
 
 
 def log_K(v, x):
-    dt0 = 1.0
+    dt0 = 1.
     n_iter = 5
     bins = 100
 
     dtype = (v * x).dtype
+    shape = (v * x).shape
     eps = tk.epsilon(dtype)
-    zero = tf.zeros_like(v * x)
+    zero = tf.zeros(shape, dtype)
+    dt0 = dt0 * tf.ones(shape, dtype)
 
     func = lambda t: tk.log_cosh(v * t) - x * tk.cosh(t)
     deriv1 = get_deriv_func(func)
