@@ -1,16 +1,44 @@
 import tensorflow as tf
-from tensorflow.math import abs, sign
-from tensorflow.math import log, log1p, expm1
-from tensorflow.math import sinh, cosh, tanh
-from tensorflow.math import reduce_logsumexp as log_sum_exp
+import numpy as np
+
+
+minimum = tf.math.minimum
+maximum = tf.math.maximum
+
+sign = tf.math.sign
+abs = tf.math.abs
+round = tf.math.round
+
+reciprocal = tf.math.reciprocal
+square = tf.math.square
+
+log = tf.math.log
+log1p = tf.math.log1p
+
+exp = tf.math.exp
+expm1 = tf.math.expm1
+
+sin = tf.math.sin
+cos = tf.math.cos
+tan = tf.math.tan
+
+sinh = tf.math.sinh
+cosh = tf.math.cosh
+tanh = tf.math.tanh
+
+sum = tf.math.reduce_sum
+log_sum_exp = tf.math.reduce_logsumexp
+
+
+def epsilon(dtype):
+    return np.finfo(dtype.as_numpy_dtype).eps
 
 
 @tf.custom_gradient
 def log_sinh(x):
     def grad(upstream):
         return upstream / tanh(x)
-    log2 = log(tf.constant(2, x.dtype))
-    return tf.where(x < 20, log(sinh(x)), x - log2), grad
+    return tf.where(x < 20., log(tf_sinh(x)), x - np.log(2.)), grad
 
 
 @tf.custom_gradient
@@ -20,3 +48,20 @@ def log_cosh(x):
     return x + log1p(expm1(-2 * x) / 2), grad
 
 
+def sinc(x):
+    pix = np.pi * x
+    return tf.where(tf.equal(x, 0.), 1., sin(pix) / pix)
+
+
+def sinhc(x):
+    return tf.where(tf.equal(x, 0.), 1., sinh(x) / x)
+
+
+def log_add_exp(x, y):
+    larger = maximum(x, y)
+    return larger + log(exp(x - larger) + exp(y - larger))
+
+
+def log_sub_exp(x, y):
+    larger = maximum(x, y)
+    return larger + log(exp(x - larger) - exp(y - larger))

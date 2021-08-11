@@ -2,14 +2,42 @@ import tensorflow as tf
 import numpy as np
 
 from .utils import get_deriv_func, find_zero
-from .math import abs, sign, log, cosh, log_sinh, log_cosh, log_sum_exp
+from . import math as tk
 
 
 def log_K(v, x):
-    def func(t):
-        return log_cosh(v * t) - x * cosh(t)
-    t, h = _find_range(v, x, func)
-    return log_sum_exp(func(t), axis=0) + log(h)
+    dt0 = 1.0
+    n_iter = 5
+    bins = 100
+
+    dtype = (v * x).dtype
+    eps = tk.epsilon(dtype)
+    zero = tf.zeros_like(v * x)
+
+    func = lambda t: tk.log_cosh(v * t) - x * tk.cosh(t)
+    deriv1 = get_deriv_func(func)
+    deriv2 = get_deriv_func(deriv1)
+
+    t0 = tf.where(deriv2(zero) > 0., eps, zero)
+    dt = tf.where(deriv1(t0) > 0., dt0, zero) 
+    tp = find_zero(deriv1, t0, dt, n_iter)
+
+    th = func(tp) + tk.log(eps)
+    func_mth = lambda t: func(t) - th
+
+    tpm = tk.maximum(tp - bins * eps, 0.)
+    t0 = tf.where((func_mth(zero) < 0.) & (func_mth(tpm) > 0.),  tpm, zero)
+    dt = tf.where((func_mth(zero) < 0.) & (func_mth(tpm) > 0.), -tpm, zero)
+    ts = find_zero(func_mth, t0, dt, n_iter)
+
+    t0 = tk.maximum(tp + bins * eps, tp * (1. + bins * eps))
+    dt = tf.where(func_mth(t0) > 0., dt0, zero)
+    te = find_zero(func_mth, t0, dt, n_iter)
+
+    t = tf.linspace(ts, te, bins, axis=0)
+    eft = tk.exp(func(t) - func(tp))
+    sum_eft = tk.sum(eft, axis=0) - (eft[0] + eft[-1]) / 2
+    return func(tp) + tk.log(sum_eft * (te - ts) / (bins - 1))
 
 
 def log_dK_dv(v, x):
@@ -23,7 +51,7 @@ def log_minus_dK_dx(v, x):
     def func(t):
         return log_cosh(v * t) + log_cosh(t) - x * cosh(t)
     t, h = _find_range(v, x, func)
-    return log_sum_exp(func(t), axis=0) + log(h)
+    return -log_sum_exp(func(t), axis=0) + log(h)
 
 
 def dlogK_dv(v, x):
