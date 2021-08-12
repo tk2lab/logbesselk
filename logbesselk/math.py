@@ -11,6 +11,7 @@ round = tf.math.round
 
 reciprocal = tf.math.reciprocal
 square = tf.math.square
+sqrt = tf.math.sqrt
 
 log = tf.math.log
 log1p = tf.math.log1p
@@ -25,6 +26,8 @@ tan = tf.math.tan
 sinh = tf.math.sinh
 cosh = tf.math.cosh
 tanh = tf.math.tanh
+
+log_gamma = tf.math.lgamma
 
 sum = tf.math.reduce_sum
 log_sum_exp = tf.math.reduce_logsumexp
