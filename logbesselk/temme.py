@@ -20,6 +20,26 @@ def log_K(v, x):
 
 def _log_ku_temme(u, x):
 
+    def calc_gamma(u):
+        factor = [
+            +1.8437405873009050, -1.1420226803711680,
+            -0.0768528408447867, +0.0065165112670737,
+            +0.0012719271366546, +0.0003087090173086,
+            -0.0000049717367042, -0.0000034706269649,
+            -0.0000000331261198, +0.0000000069437664,
+            +0.0000000002423096, +0.0000000000367795,
+            -0.0000000000001702, -0.0000000000001356,
+            -0.00000000000000149,
+        ]
+        w = 16. * tk.square(u) - 2.
+        coef = [None, None]
+        for s in range(2):
+            prev, curr = 0., 0.
+            for fac in reversed(factor[s + 2::2]):
+                prev, curr = curr, w * curr + fac - prev
+            coef[s] = 0.5 * (w * curr + factor[s]) - prev
+        return coef
+
     def cond(ki, li, i, ci, pi, qi, fi):
         return tf.reduce_any(
             (0. < x) & (x <= 2.) & (tk.abs(ci * fi) > tol * tk.abs(ki))
@@ -40,19 +60,16 @@ def _log_ku_temme(u, x):
     tol = tk.epsilon(dtype)
 
     u = tk.abs(u)
-    gmuinv = tk.exp(-tk.log_gamma(1. - u))
-    gpuinv = tk.exp(-tk.log_gamma(1. + u))
-    gm = tf.where(u > tol, 0.5 * (gpuinv - gmuinv) / u, np.euler_gamma)
-    gp = 0.5 * (gpuinv + gmuinv)
+    gp, gm = calc_gamma(u)
     xh = 0.5 * x
     lxh = tk.log(xh)
     mu = u * lxh
 
     i = tf.cast(0., dtype)
     c0 = tf.ones(shape, dtype)
-    p0 = 0.5 * tk.exp(-mu) / gpuinv
-    q0 = 0.5 * tk.exp( mu) / gmuinv
-    f0 = -(gp * lxh * tk.sinhc(mu) + gm * tk.cosh(mu)) / tk.sinc(u)
+    p0 = 0.5 * tk.exp(-mu) / (gp - u * gm)
+    q0 = 0.5 * tk.exp( mu) / (gp + u * gm)
+    f0 = (gm * tk.cosh(mu) - gp * lxh * tk.sinhc(mu)) / tk.sinc(u)
     k0 = c0 * f0
     l0 = c0 * (p0 - i * f0)
     init = k0, l0, i, c0, p0, q0, f0
