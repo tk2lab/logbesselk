@@ -59,7 +59,6 @@ def _log_ku_temme(u, x):
     shape = tf.shape(u * x)
     tol = tk.epsilon(dtype)
 
-    u = tk.abs(u)
     gp, gm = calc_gamma(u)
     xh = 0.5 * x
     lxh = tk.log(xh)
