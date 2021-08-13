@@ -5,9 +5,12 @@ from .utils import get_deriv_func, find_zero
 from . import math as tk
 
 
-def log_K(v, x):
-    func = lambda t: tk.log_cosh(v * t) - x * tk.cosh(t)
-    return _common_integral(func, v, x, kind=1, dt0=1., n_iter=5, bins=128)
+def log_K(v, x, name=None):
+    with tf.name_scope(name or 'integral_log_K'):
+        return _common_integral(
+            lambda t: tk.log_cosh(v * t) - x * tk.cosh(t),
+            v, x, kind=1, dt0=1., n_iter=5, bins=128,
+        )
 
 
 def log_dK_dv(v, x):
