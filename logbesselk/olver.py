@@ -1,76 +1,42 @@
 import tensorflow as tf
 import numpy as np
 
+from . import math as tk
 
-def log_K_olver(v, x):
-    """The modified Bessel function of the second kind in log-space.
-    References:
-    [1]: Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
-    [2]: F. Olver, Tables for Bessel Functions of Moderate of Large Orders.
-         National Physical Laboratory Mathematical Tables, Vol. 6.
-         Depertment of Scientific and Industrial Research
+
+def log_K(v, x, name=None):
     """
-    z = x / v
-    q = tf.math.sqrt(1. + z ** 2)
-    log_factor = (
-        tf.math.log(np.pi / (2. * v * q)) / 2.
-        - v * (q + tf.math.log(z / (1. + q)))
-    )
+    Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
+    """
 
-    p = 1. / q
+    def _next_factor(prev, k):
+        fac = [0.] * (3 * k + 4)
+        for i in range(k, 3 * k + 1, 2):
+            fac[i + 1] += prev[i] * (0.5 * i + 0.125 / (i + 1.))
+            fac[i + 3] -= prev[i] * (0.5 * i + 0.625 / (i + 3.))
+        return fac
+
+    def _u(factor, k, q):
+        uk = 0.
+        for fac in reversed(factor):
+            uk = uk / q + fac
+        return uk
+
     n_factors = 10
-    k_sum = 1.
-    for i in range(n_factors):
-        k_sum += _oliver_coeffs(i, p) / ((-v) ** (i + 1))
-    return log_factor + tf.math.log(k_sum)
 
+    with tf.name_scope(name or 'olver_log_K'):
+        v_abs = tk.abs(v)
+        q = tk.sqrt(1. + tk.square(x / v_abs))
 
-def _oliver_coeffs(i, p):
-    coeffs = [
-        [
-            0.125, -0.20833333333333334,
-        ], [
-            0.0703125, -0.40104166666666669, 0.3342013888888889,
-        ], [
-            0.0732421875, -0.89121093750000002, 1.8464626736111112,
-            -1.0258125964506173,
-        ], [
-            0.112152099609375, -2.3640869140624998, 8.78912353515625,
-            -11.207002616222995, 4.6695844234262474,
-        ], [
-            0.22710800170898438, -7.3687943594796312, 42.534998745388457,
-            -91.818241543240035, 84.636217674600744, -28.212072558200244,
-        ], [
-            0.57250142097473145, -26.491430486951554, 218.19051174421159,
-            -699.57962737613275, 1059.9904525279999, -765.25246814118157,
-            212.5701300392171,
-        ], [
-            1.7277275025844574, -108.09091978839464, 1200.9029132163525,
-            -5305.6469786134048, 11655.393336864536, -13586.550006434136,
-            8061.7221817373083, -1919.4576623184068,
-        ],
-        [
-            6.074042001273483, -493.915304773088, 7109.5143024893641,
-            -41192.654968897557, 122200.46498301747, -203400.17728041555,
-            192547.0012325315, -96980.598388637503, 20204.291330966149,
-        ],
-        [
-            24.380529699556064, -2499.8304818112092, 45218.768981362737,
-            -331645.17248456361, 1268365.2733216248, -2813563.2265865342,
-            3763271.2976564039, -2998015.9185381061, 1311763.6146629769,
-            -242919.18790055133,
-        ],
-        [
-            110.01714026924674, -13886.089753717039, 308186.40461266245,
-            -2785618.1280864552, 13288767.166421819, -37567176.660763353,
-            66344512.274729028, -74105148.211532637, 50952602.492664628,
-            -19706819.11843222, 3284469.8530720375,
-        ],
-    ]
+        sum_uv = 0.
+        factor = [1.]
+        for k in range(n_factors):
+            sum_uv += _u(factor, k, q) / tk.pow(-v_abs, k)
+            factor = _next_factor(factor, k)
 
-    p2 = p * p
-    r = 0.
-    for c in coeffs[i][::-1]:
-        r = r * p2 + c
-    r *= p ** (i + 1)
-    return r
+        return (
+            0.5 * tk.log(0.5 * np.pi / (v_abs * q))
+            + v_abs * tk.log((v_abs + v_abs * q) / x)
+            - v_abs * q
+            + tf.math.log(sum_uv)
+        )

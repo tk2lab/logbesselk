@@ -12,6 +12,7 @@ round = tf.math.round
 reciprocal = tf.math.reciprocal
 square = tf.math.square
 sqrt = tf.math.sqrt
+pow = tf.math.pow
 
 log = tf.math.log
 log1p = tf.math.log1p
@@ -37,6 +38,10 @@ def epsilon(dtype):
     return np.finfo(dtype.as_numpy_dtype).eps
 
 
+def gamma(x):
+    return exp(log_gamma(x))
+
+
 @tf.custom_gradient
 def log_sinh(x):
     def grad(upstream):
@@ -60,9 +65,11 @@ def sinhc(x):
     return tf.where(tf.equal(x, 0.), tf.ones_like(x), sinh(x) / x)
 
 
-def log_add_exp(x, y):
+def log_add_exp(x, y, sign=None):
     larger = maximum(x, y)
-    return larger + log(exp(x - larger) + exp(y - larger))
+    if sign is None:
+        sign = 1.
+    return larger + log(exp(x - larger) + sign * exp(y - larger))
 
 
 def log_sub_exp(x, y):

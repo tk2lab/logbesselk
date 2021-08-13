@@ -60,19 +60,19 @@ def find_zero(func, x, dx, n_iter):
     return x0
 
 
-def bessel_recurrence(ku0, ku1, u, x, n):
+def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
 
-    def cond(k0, k1, ui, ni):
+    def cond(ki, kj, ui, ni):
         return tf.reduce_any(ni != 0.)
 
-    def body(k0, k1, ui, ni):
-        kp = tk.log_add_exp(k0, k1 + tk.log(2. * (ui + 1.) / x))
-        km = tk.log_sub_exp(k1, k0 + tk.log(2. * ui / x))
-        k0 = tf.where(tf.equal(ni, 0.), k0, tf.where(ni > 0., k1, km))
-        k1 = tf.where(tf.equal(ni, 0.), k1, tf.where(ni > 0., kp, k0))
-        ui += tk.sign(ni)
-        ni -= tk.sign(ni)
-        return k0, k1, ui, ni
+    def body(ki, kj, ui, ni):
+        uj = ui + tk.sign(ni)
+        nj = ni - tk.sign(ni)
+        kp = tk.log_add_exp(ki, kj + tk.log(2. * uj / x))
+        km = tk.log_sub_exp(kj, ki + tk.log(2. * ui / x))
+        kj = tf.where(tf.equal(ni, 0.), ki, tf.where(ni > 0, kj, km))
+        kk = tf.where(tf.equal(ni, 0.), kj, tf.where(ni > 0, kp, ki))
+        return kj, kk, uj, nj
 
-    init = tk.log(ku0), tk.log(ku1), u, n
-    return tf.while_loop(cond, body, init)
+    init = log_ku, log_kup1, u, n
+    return tf.while_loop(cond, body, init)[:2]

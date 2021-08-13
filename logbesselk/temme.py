@@ -2,10 +2,10 @@ import tensorflow as tf
 import numpy as np
 
 from . import math as tk
-from .utils import bessel_recurrence
+from .utils import log_bessel_recurrence
 
 
-def log_K_temme(v, x):
+def log_K(v, x):
     """
     N.M. Temme.
     On the numerical evaluation of the modified Bessel function
@@ -14,46 +14,48 @@ def log_K_temme(v, x):
     """
     n = tk.round(v)
     u = v - n
-    ku0, ku1 = _ku_temme(u, x)
-    return bessel_recurrence(ku0, ku1, u, x, n)[0]
+    log_ku, log_kup1 = _log_ku_temme(u, x)
+    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
 
 
-def _ku_temme(u, x):
+def _log_ku_temme(u, x):
 
-    def cond(ki, li, i, pi, qi, ci, fi):
+    def cond(ki, li, i, ci, pi, qi, fi):
         return tf.reduce_any(
             (0. < x) & (x <= 2.) & (tk.abs(ci * fi) > tol * tk.abs(ki))
         )
 
-    def body(ki, li, i, pi, qi, ci, fi):
+    def body(ki, li, i, ci, pi, qi, fi):
         j = i + 1.
+        cj = ci * tk.square(xh) / j
         pj = pi / (j - u)
         qj = qi / (j + u)
-        cj = ci * tk.square(xh) / i
         fj = (j * fi + pi + qi) / (tk.square(j) - tk.square(u))
         kj = ki + cj * fj
         lj = li + cj * (pj - j * fj)
-        return kj, lj, j, pj, qj, cj, fj
+        return kj, lj, j, cj, pj, qj, fj
 
     dtype = (u * x).dtype
     shape = tf.shape(u * x)
     tol = tk.epsilon(dtype)
 
-    lgm = tk.log_gamma(1. - u)
-    lgp = tk.log_gamma(1. + u)
-    g1 = 0.5 * tk.sinc(u) * (tk.exp(lgp) - tk.exp(lgm))
-    g2 = 0.5 * tk.sinc(u) * (tk.exp(lgp) + tk.exp(lgm) + 2.)
+    u = tk.abs(u)
+    gmuinv = tk.exp(-tk.log_gamma(1. - u))
+    gpuinv = tk.exp(-tk.log_gamma(1. + u))
+    gm = tf.where(u > tol, 0.5 * (gpuinv - gmuinv) / u, np.euler_gamma)
+    gp = 0.5 * (gpuinv + gmuinv)
     xh = 0.5 * x
     lxh = tk.log(xh)
+    mu = u * lxh
 
-    i = tf.cast(1., dtype)
-    p0 = 0.5 * tk.exp(lgm - u * lxh)
-    q0 = 0.5 * tk.exp(lgp + u * lxh)
+    i = tf.cast(0., dtype)
     c0 = tf.ones(shape, dtype)
-    f0 = (tk.cosh(u * lxh) * g1 + lxh * tk.sinh(u * lxh) * g2) / tk.sinc(u)
+    p0 = 0.5 * tk.exp(-mu) / gpuinv
+    q0 = 0.5 * tk.exp( mu) / gmuinv
+    f0 = -(gp * lxh * tk.sinhc(mu) + gm * tk.cosh(mu)) / tk.sinc(u)
     k0 = c0 * f0
     l0 = c0 * (p0 - i * f0)
-    init = k0, l0, i, p0, q0, c0, f0
+    init = k0, l0, i, c0, p0, q0, f0
 
     ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=1000)
-    return ku, kn / xh
+    return tk.log(ku), tk.log(kn / xh)
