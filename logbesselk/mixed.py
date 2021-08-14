@@ -18,10 +18,11 @@ def log_K(v, x, name=None):
 
 
 def _log_K(v, x):
-    n = tk.round(v)
-    u = v - n
     mask_temme = (tk.abs(v) < 50.) & (0. < x) & (x <= 2.)
     mask_cf2 = (tk.abs(v) < 50.) & (x > 2.)
+    n = tk.round(v)
+    u = v - n
+    n = tf.where(v < 50, n, 0.)
     log_ku0_smallx, log_ku1_smallx = _log_ku_temme(u, x, mask_temme)
     log_ku0_largex, log_ku1_largex = _log_ku_cf2(u, x, mask_cf2)
     log_ku0 = tf.where(x <= 2, log_ku0_smallx, log_ku0_largex)
