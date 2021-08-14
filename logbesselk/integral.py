@@ -3,19 +3,19 @@ import numpy as np
 
 from . import math as tk
 from .utils import get_deriv_func, find_zero
-from .utils import wrap_K, wrap_log_K
-
-
-def K(v, x, name=None):
-    return wrap_K(
-        _log_K, _log_dKdv, _log_minus_dKdx, v, x, name or 'bessel_K_int',
-    )
+from .utils import log_K_custom_gradient
 
 
 def log_K(v, x, name=None):
-    return wrap_log_K(
-        _log_K, _log_dKdv, _log_minus_dKdx, v, x, name or 'log_K_int',
-    )
+
+    @tf.custom_gradient
+    def custom_gradient(v, x):
+        return log_K_custom_gradient(_log_K, _log_dKdv, _log_minus_dKdx, v, x)
+
+    with tf.name_scope(name or 'bessel_K_int'):
+        x = tf.convert_to_tensor(x)
+        v = tf.convert_to_tensor(v, x.dtype)
+        return custom_gradient(v, x)
 
 
 

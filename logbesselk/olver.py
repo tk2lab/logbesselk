@@ -2,15 +2,20 @@ import tensorflow as tf
 import numpy as np
 
 from . import math as tk
-from .utils import wrap_K, wrap_log_K
-
-
-def K(v, x, name=None):
-    return wrap_K(_log_K, None, None, v, x, name or 'bessel_K_olv')
+from .utils import log_K_custom_gradient
+from .utils import log_bessel_recurrence
 
 
 def log_K(v, x, name=None):
-    return wrap_log_K(_log_K, None, None, v, x, name or 'log_K_olv')
+
+    @tf.custom_gradient
+    def custom_gradient(v, x):
+        return log_K_custom_gradient(_log_K, None, None, v, x)
+
+    with tf.name_scope(name or 'bessel_K_olver'):
+        x = tf.convert_to_tensor(x)
+        v = tf.convert_to_tensor(v, x.dtype)
+        return custom_gradient(v, x)
 
 
 

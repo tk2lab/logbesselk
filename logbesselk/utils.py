@@ -78,47 +78,18 @@ def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
     return tf.while_loop(cond, body, init)[:2]
 
 
-def wrap_K(log_k, log_dk_dv, log_minus_dk_dx, v, x, name=None):
+def log_K_custom_gradient(log_k, log_dk_dv, log_minus_dk_dx, v, x):
 
-    @tf.custom_gradient
-    def custom_gradient(v, x):
-        def grad(u):
-            if log_minus_dk_dx is None:
-                dkvdx = (v / x) * kv - tk.exp(log_k(v + 1., x))
-            else:
-                dkvdx = -tk.exp(log_minus_dk_dx(v, x))
-            if log_dk_dv is None:
-                return None, u * dkdvx
-            else:
-                dkvdv = tk.exp(log_dk_dv(v, x))
-                return u * dkvdv, u * dkvdx
-        kv = tk.exp(log_k(v, x))
-        return kv, grad
+    def grad(u):
+        if log_minus_dk_dx is None:
+            dlogkvdx = v / x - tk.exp(log_k(v + 1, x) - logkv)
+        else:
+            dlogkvdx = -tk.exp(log_minus_dk_dx(v, x) - logkv)
+        if log_dk_dv is None:
+            return None, u * dlogkvdx
+        else:
+            dlogkvdv = tk.exp(log_dk_dv(v, x) - logkv)
+            return u * dlogkvdv, u * dlogkvdx
 
-    with tf.name_scope(name or 'bessel_K'):
-        x = tf.convert_to_tensor(x)
-        v = tf.convert_to_tensor(v, x.dtype)
-        return gradient(v, x)
-
-
-def wrap_log_K(log_k, log_dk_dv, log_minus_dk_dx, v, x, name=None):
-
-    @tf.custom_gradient
-    def custom_gradient(v, x):
-        def grad(u):
-            if log_minsu_dk_dx is None:
-                dlogkvdx = v / x - tk.exp(log_k(v + 1, x) - logkv)
-            else:
-                dlogkvdx = -tk.exp(log_minus_dk_dx(v, x) - logkv)
-            if log_dk_dv is None:
-                return None, u * dlogkvdx
-            else:
-                dlogkvdv = tk.exp(log_dk_dv(v, x) - logkv)
-                return u * dlogkvdv, u * dlogkvdx
-        logkv = log_k(v, x)
-        return logkv, grad
-
-    with tf.name_scope(name or 'log_K'):
-        x = tf.convert_to_tensor(x)
-        v = tf.convert_to_tensor(v, x.dtype)
-        return custom_gradient(v, x)
+    logkv = log_k(v, x)
+    return logkv, grad
