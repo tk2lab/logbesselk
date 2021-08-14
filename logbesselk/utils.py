@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from . import math as tk
+
 
 def get_deriv_func(func):
     def deriv(x):
@@ -56,3 +58,21 @@ def find_zero(func, x, dx, n_iter):
     init = extend(func, x, dx)
     x0, x1, f0, f1 = tf.while_loop(cond, body, init, maximum_iterations=n_iter)
     return x0
+
+
+def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
+
+    def cond(ki, kj, ui, ni):
+        return tf.reduce_any(ni != 0.)
+
+    def body(ki, kj, ui, ni):
+        uj = ui + tk.sign(ni)
+        nj = ni - tk.sign(ni)
+        kp = tk.log_add_exp(ki, kj + tk.log(2. * uj / x))
+        km = tk.log_sub_exp(kj, ki + tk.log(2. * ui / x))
+        kj = tf.where(tf.equal(ni, 0.), ki, tf.where(ni > 0, kj, km))
+        kk = tf.where(tf.equal(ni, 0.), kj, tf.where(ni > 0, kp, ki))
+        return kj, kk, uj, nj
+
+    init = log_ku, log_kup1, u, n
+    return tf.while_loop(cond, body, init)[:2]
