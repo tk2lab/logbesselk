@@ -30,29 +30,25 @@ def _log_K(v, x):
 
 def _log_ku_cf2(u, x, mask=None):
 
-    def a(k):
-        k = tf.convert_to_tensor(k, dtype)
-        return tk.square(k + 0.5) - tk.square(u)
-
-    def b(k):
-        return 2. * (x + k)
-
-    def cond(si, ri, i, gi, hi, qi, qj, ci, ti):
+    def cond(si, ri, i, ai, bi, gi, hi, qi, qj, ci, ti):
         return tf.reduce_any(mask & (tk.abs(hi * ti) > tol * tk.abs(si)))
 
-    def body(si, ri, i, gi, hi, qm, qi, ci, ti):
+    def body(si, ri, i, ai, bi, gi, hi, qm, qi, ci, ti):
         j = i + 1.
 
-        gj = 1. / (b(j) - a(i) * gi)
-        hj = hi * (b(j) * gj - 1.)
+        aj = ai + 2. * j
+        bj = bi + 2.
 
-        qj = (b(i) * qi - qm) / a(i)
-        cj = ci * a(i) / j
+        gj = 1. / (bj - ai * gi)
+        hj = hi * (bj * gj - 1.)
+
+        qj = (bi * qi - qm) / ai
+        cj = ci * ai / j
         tj = ti + cj * qj
 
         sj = si + hj * tj
         rj = ri + hj
-        return sj, rj, j, gj, hj, qi, qj, cj, tj
+        return sj, rj, j, aj, bj, gj, hj, qi, qj, cj, tj
 
     dtype = (u * x).dtype
     shape = tf.shape(u * x)
@@ -61,19 +57,24 @@ def _log_ku_cf2(u, x, mask=None):
     if mask is None:
         mask = tf.ones(shape, tf.bool)
 
+    a0 = 0.25 - tk.square(u)
+    b0 = 2. * x
     s0, r0 = 1., 0.
+
     i = tf.cast(1., dtype)
-    g1 = 1. / b(1.)
-    h1 = 1. / b(1.)
+    a1 = a0 + 2.
+    b1 = b0 + 2.
+    g1 = 1. / b1
+    h1 = 1. / b1
     q0 = tf.zeros(shape, dtype)
     q1 = tf.ones(shape, dtype)
-    c1 = a(0.)
-    t1 = a(0.)
+    c1 = a0
+    t1 = a0
     s1 = s0 + h1 * t1
     r1 = r0 + h1
-    init = s1, r1, i, g1, h1, q0, q1, c1, t1
+    init = s1, r1, i, a1, b1, g1, h1, q0, q1, c1, t1
 
     sn, rn, *_ = tf.while_loop(cond, body, init, maximum_iterations=1000)
-    log_ku = 0.5 * tk.log(np.pi / b(0.)) - x - tk.log(sn)
-    log_kup1 = log_ku + tk.log((0.5 + u + x - a(0.) * rn) / x)
+    log_ku = 0.5 * tk.log(np.pi / b0) - x - tk.log(sn)
+    log_kup1 = log_ku + tk.log((0.5 + u + x - a0 * rn) / x)
     return log_ku, log_kup1
