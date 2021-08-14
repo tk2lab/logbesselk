@@ -83,7 +83,7 @@ def wrap_K(log_k, log_dk_dv, log_minus_dk_dx, v, x, name=None):
     @tf.custom_gradient
     def custom_gradient(v, x):
         def grad(u):
-            if log_minus_dk_dx is None
+            if log_minus_dk_dx is None:
                 dkvdx = (v / x) * kv - tk.exp(log_k(v + 1., x))
             else:
                 dkvdx = -tk.exp(log_minus_dk_dx(v, x))

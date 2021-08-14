@@ -7,11 +7,11 @@ from .utils import log_bessel_recurrence
 
 
 def K(v, x, name=None):
-    return wrap_K(_log_K, None, None, v, x, name or 'K_temme')
+    return wrap_K(_log_K, None, None, v, x, name or 'bessel_K_tem')
 
 
 def log_K(v, x, name=None):
-    return wrap_log_K(_log_K, None, None, v, x, name or 'log_K_temme')
+    return wrap_log_K(_log_K, None, None, v, x, name or 'log_K_tem')
 
 
 

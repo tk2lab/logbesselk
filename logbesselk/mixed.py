@@ -9,11 +9,12 @@ from .utils import wrap_K, wrap_log_K
 
 
 def K(v, x, name=None):
-    return wrap_K(_log_K, v, x, name or 'K_mixed')
+    return wrap_K(_log_K, None, None, v, x, name or 'bessel_K_mix')
 
 
 def log_K(v, x, name=None):
-    return wrap_log_K(_log_K, v, x, name or 'log_K_mixed')
+    return wrap_log_K(_log_K, None, None, v, x, name or 'log_K_mix')
+
 
 
 def _log_K(v, x):
