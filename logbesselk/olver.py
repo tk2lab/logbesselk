@@ -2,9 +2,19 @@ import tensorflow as tf
 import numpy as np
 
 from . import math as tk
+from .utils import wrap_K, wrap_log_K
+
+
+def K(v, x, name=None):
+    return wrap_K(_log_K, None, None, v, x, name or 'K_olver')
 
 
 def log_K(v, x, name=None):
+    return wrap_log_K(_log_K, None, None, v, x, name or 'log_K_olver')
+
+
+
+def _log_K(v, x):
     """
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
     """
@@ -24,19 +34,18 @@ def log_K(v, x, name=None):
 
     n_factors = 10
 
-    with tf.name_scope(name or 'olver_log_K'):
-        v_abs = tk.abs(v)
-        q = tk.sqrt(1. + tk.square(x / v_abs))
+    v_abs = tk.abs(v)
+    q = tk.sqrt(1. + tk.square(x / v_abs))
 
-        sum_uv = 0.
-        factor = [1.]
-        for k in range(n_factors):
-            sum_uv += _u(factor, k, q) / tk.pow(-v_abs, k)
-            factor = _next_factor(factor, k)
+    sum_uv = 0.
+    factor = [1.]
+    for k in range(n_factors):
+        sum_uv += _u(factor, k, q) / tk.pow(-v_abs, k)
+        factor = _next_factor(factor, k)
 
-        return (
-            0.5 * tk.log(0.5 * np.pi / (v_abs * q))
-            + v_abs * tk.log((v_abs + v_abs * q) / x)
-            - v_abs * q
-            + tf.math.log(sum_uv)
-        )
+    return (
+        0.5 * tk.log(0.5 * np.pi / (v_abs * q))
+        + v_abs * tk.log((v_abs + v_abs * q) / x)
+        - v_abs * q
+        + tf.math.log(sum_uv)
+    )

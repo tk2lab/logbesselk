@@ -2,10 +2,20 @@ import tensorflow as tf
 import numpy as np
 
 from . import math as tk
+from .utils import wrap_K, wrap_log_K
 from .utils import log_bessel_recurrence
 
 
+def K(v, x, name=None):
+    return wrap_K(_log_K, None None, v, x, name or 'K_cf2')
+
+
 def log_K(v, x, name=None):
+    return wrap_log_K(_log_K, None, None, v, x, name or 'log_K_cf2')
+
+
+
+def _log_K(v, x):
     """
     I.J. Thompson and A.R. Barnett,
     Modified Bessel function Iv(z) and Kv(z) and real order
@@ -18,7 +28,7 @@ def log_K(v, x, name=None):
     return log_bessel_recurrence(log_ku0, log_ku1, u, n, x)[0]
 
 
-def _log_ku_cf2(u, x):
+def _log_ku_cf2(u, x, mask=None):
 
     def a(k):
         k = tf.convert_to_tensor(k, dtype)
@@ -28,7 +38,7 @@ def _log_ku_cf2(u, x):
         return 2. * (x + k)
 
     def cond(si, ri, i, gi, hi, qi, qj, ci, ti):
-        return tf.reduce_any((x > 2.) & (tk.abs(hi * ti) > tol * tk.abs(si)))
+        return tf.reduce_any(mask & (tk.abs(hi * ti) > tol * tk.abs(si)))
 
     def body(si, ri, i, gi, hi, qm, qi, ci, ti):
         j = i + 1.
@@ -46,7 +56,10 @@ def _log_ku_cf2(u, x):
 
     dtype = (u * x).dtype
     shape = tf.shape(u * x)
+
     tol = tk.epsilon(dtype)
+    if mask is None:
+        mask = tf.ones(shape, tf.bool)
 
     s0, r0 = 1., 0.
     i = tf.cast(1., dtype)

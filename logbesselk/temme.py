@@ -2,10 +2,20 @@ import tensorflow as tf
 import numpy as np
 
 from . import math as tk
+from .utils import wrap_K, wrap_log_K
 from .utils import log_bessel_recurrence
 
 
-def log_K(v, x):
+def K(v, x, name=None):
+    return wrap_K(_log_K, None, None, v, x, name or 'K_temme')
+
+
+def log_K(v, x, name=None):
+    return wrap_log_K(_log_K, None, None, v, x, name or 'log_K_temme')
+
+
+
+def _log_K(v, x):
     """
     N.M. Temme.
     On the numerical evaluation of the modified Bessel function
@@ -18,7 +28,7 @@ def log_K(v, x):
     return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
 
 
-def _log_ku_temme(u, x):
+def _log_ku_temme(u, x, mask=None):
 
     def calc_gamma(u):
         factor = [
@@ -41,13 +51,11 @@ def _log_ku_temme(u, x):
         return coef
 
     def cond(ki, li, i, ci, pi, qi, fi):
-        return tf.reduce_any(
-            (0. < x) & (x <= 2.) & (tk.abs(ci * fi) > tol * tk.abs(ki))
-        )
+        return tf.reduce_any(mask & (tk.abs(ci * fi) > tol * tk.abs(ki)))
 
     def body(ki, li, i, ci, pi, qi, fi):
         j = i + 1.
-        cj = ci * tk.square(xh) / j
+        cj = ci * tk.square(0.5 * x) / j
         pj = pi / (j - u)
         qj = qi / (j + u)
         fj = (j * fi + pi + qi) / (tk.square(j) - tk.square(u))
@@ -57,11 +65,13 @@ def _log_ku_temme(u, x):
 
     dtype = (u * x).dtype
     shape = tf.shape(u * x)
+
     tol = tk.epsilon(dtype)
+    if mask is None:
+        mask = tf.ones(shape, tf.bool)
 
     gp, gm = calc_gamma(u)
-    xh = 0.5 * x
-    lxh = tk.log(xh)
+    lxh = tk.log(0.5 * x)
     mu = u * lxh
 
     i = tf.cast(0., dtype)
@@ -74,4 +84,4 @@ def _log_ku_temme(u, x):
     init = k0, l0, i, c0, p0, q0, f0
 
     ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=1000)
-    return tk.log(ku), tk.log(kn / xh)
+    return tk.log(ku), tk.log(kn) - lxh
