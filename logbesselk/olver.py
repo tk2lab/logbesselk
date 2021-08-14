@@ -2,21 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from . import math as tk
-from .utils import log_K_custom_gradient
 from .utils import log_bessel_recurrence
-
-
-def log_K(v, x, name=None):
-
-    @tf.custom_gradient
-    def custom_gradient(v, x):
-        return log_K_custom_gradient(_log_K, None, None, v, x)
-
-    with tf.name_scope(name or 'bessel_K_olver'):
-        x = tf.convert_to_tensor(x)
-        v = tf.convert_to_tensor(v, x.dtype)
-        return custom_gradient(v, x)
-
 
 
 def _log_K(v, x):

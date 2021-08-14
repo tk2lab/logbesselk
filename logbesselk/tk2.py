@@ -3,41 +3,46 @@ import numpy as np
 
 from . import math as tk
 from .utils import get_deriv_func, find_zero
-from .utils import log_K_custom_gradient
 
 
 def log_K(v, x, name=None):
-
-    @tf.custom_gradient
-    def custom_gradient(v, x):
-        return log_K_custom_gradient(_log_K, _log_dKdv, _log_minus_dKdx, v, x)
-
-    with tf.name_scope(name or 'bessel_K_int'):
+    with tf.name_scope(name or 'bessel_K_tk2'):
         x = tf.convert_to_tensor(x)
         v = tf.convert_to_tensor(v, x.dtype)
-        return custom_gradient(v, x)
+        return _log_K_custom_gradient(v, x, n=0, m=0)
 
 
-
-def _log_K(v, x):
-    def _log_f(t):
-        return tk.log_cosh(v * t) - x * tk.cosh(t)
-    return _common_integral(_log_f, v, x, kind=1)
+@tf.custom_gradient
+def _log_K_custom_gradient(v, x, n, m):
+    return _log_K(v, x, n, m), lambda u: _log_K_grad(v, x, n, m, u)
 
 
-def _log_dKdv(v, x):
-    def _log_dfdv(t):
-        return tk.log(t) + tk.log_cosh(v * t) - x * tk.cosh(t)
-    return _common_integral(_log_dfdv, v, x, kind=0)
+def _log_K_grad(v, x, n, m, u):
+    logkv = _log_K_custom_gradient(v, x, n, m)
+    dlogkvdv = tk.exp(_log_K_custom_gradient(v, x, n + 1, m) - logkv)
+    dlogkvdx = tk.exp(_log_K_custom_gradient(v, x, n, m + 1) - logkv)
+    if m % 2 == 0:
+        dlogkvdx *= -1
+    return u * dlogkvdv, u * dlogkvdx
 
 
-def _log_minus_dKdx(v, x):
-    def _log_minus_dfdx(t):
-        return tk.log_cosh(t) + tk.log_cosh(v * t) - x * tk.cosh(t)
-    return _common_integral(_log_minus_dfdx, v, x, kind=1)
+def _log_K(v, x, n, m, dt0=1., n_iter=5, bins=128):
 
+    def func(t):
+        out = - x * tk.cosh(t)
+        if n > 0:
+            out += n * tk.log(t)
+        if m > 0:
+            out += m * tk.log_cosh(t)
+        if n % 2 == 0:
+            out += tk.log_cosh(v * t)
+        else:
+            out += tk.log_sinh(v * t)
+        return out
 
-def _common_integral(func, v, x, kind, dt0=1., n_iter=5, bins=128):
+    def func_mth(t):
+        return func(t) - th
+
     dtype = (v * x).dtype
     shape = (v * x).shape
 
@@ -46,7 +51,7 @@ def _common_integral(func, v, x, kind, dt0=1., n_iter=5, bins=128):
     dt0 = dt0 * tf.ones(shape, dtype)
     deriv1 = get_deriv_func(func)
 
-    if kind == 0:
+    if n > 0:
         t0 = zero
         dt = dt0
     else:
@@ -55,10 +60,9 @@ def _common_integral(func, v, x, kind, dt0=1., n_iter=5, bins=128):
         dt = tf.where(deriv1(t0) > 0., dt0, zero) 
     tp = find_zero(deriv1, t0, dt, n_iter)
     th = func(tp) + tk.log(eps)
-    func_mth = lambda t: func(t) - th
 
     tpm = tk.maximum(tp - bins * eps, 0.)
-    if kind == 0:
+    if n > 0:
         t0 = tpm
         dt = tf.where(func_mth(tpm) > 0., -tpm, zero)
     else:

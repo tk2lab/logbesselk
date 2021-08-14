@@ -46,7 +46,7 @@ def gamma(x):
 def log_sinh(x):
     def grad(upstream):
         return upstream / tanh(x)
-    return tf.where(x < 20., log(tf_sinh(x)), x - np.log(2.)), grad
+    return tf.where(x < 20., log(sinh(x)), x - np.log(2.)), grad
 
 
 @tf.custom_gradient
@@ -58,11 +58,11 @@ def log_cosh(x):
 
 def sinc(x):
     pix = np.pi * x
-    return tf.where(tf.equal(x, 0.), tf.ones_like(x), sin(pix) / pix)
+    return tf.where(tf.equal(x, 0.), 1., sin(pix) / pix)
 
 
 def sinhc(x):
-    return tf.where(tf.equal(x, 0.), tf.ones_like(x), sinh(x) / x)
+    return tf.where(tf.equal(x, 0.), 1., sinh(x) / x)
 
 
 def log_add_exp(x, y, sign=None):

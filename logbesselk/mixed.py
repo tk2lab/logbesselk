@@ -4,21 +4,27 @@ from . import math as tk
 from .olver import _log_K as log_K_olver
 from .temme import _log_ku_temme
 from .cf2 import _log_ku_cf2
-from .utils import log_K_custom_gradient
 from .utils import log_bessel_recurrence
 
 
 def log_K(v, x, name=None):
-
-    @tf.custom_gradient
-    def custom_gradient(v, x):
-        return log_K_custom_gradient(_log_K, None, None, v, x)
-
     with tf.name_scope(name or 'bessel_K_mix'):
         x = tf.convert_to_tensor(x)
         v = tf.convert_to_tensor(v, x.dtype)
-        return custom_gradient(v, x)
+        return _log_K_custom_gradient(v, x)
 
+
+
+@tf.custom_gradient
+def _log_K_custom_gradient(v, x):
+    return _log_K(v, x), lambda u: _log_K_grad(v, x, u)
+
+
+def _log_K_grad(v, x, u):
+    logkv = _log_K_custom_gradient(v, x)
+    logkvm1 = _log_K_custom_gradient(v - 1, x)
+    dlogkvdx = - v / x - tk.exp(logkvm1 - logkv)
+    return None, u * dlogkvdx
 
 
 def _log_K(v, x):

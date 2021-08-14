@@ -76,20 +76,3 @@ def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
 
     init = log_ku, log_kup1, u, n
     return tf.while_loop(cond, body, init)[:2]
-
-
-def log_K_custom_gradient(log_k, log_dk_dv, log_minus_dk_dx, v, x):
-
-    def grad(u):
-        if log_minus_dk_dx is None:
-            dlogkvdx = v / x - tk.exp(log_k(v + 1, x) - logkv)
-        else:
-            dlogkvdx = -tk.exp(log_minus_dk_dx(v, x) - logkv)
-        if log_dk_dv is None:
-            return None, u * dlogkvdx
-        else:
-            dlogkvdv = tk.exp(log_dk_dv(v, x) - logkv)
-            return u * dlogkvdv, u * dlogkvdx
-
-    logkv = log_k(v, x)
-    return logkv, grad
