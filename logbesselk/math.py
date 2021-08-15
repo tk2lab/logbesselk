@@ -2,6 +2,11 @@ import tensorflow as tf
 import numpy as np
 
 
+pi = np.pi
+inf = np.inf
+nan = np.nan
+
+
 minimum = tf.math.minimum
 maximum = tf.math.maximum
 

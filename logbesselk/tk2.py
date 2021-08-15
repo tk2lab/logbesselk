@@ -1,29 +1,27 @@
 import tensorflow as tf
-import numpy as np
 
 from . import math as tk
 from .utils import get_deriv_func, find_zero
 
 
-def log_K(v, x, name=None):
+def log_bessel_k(v, x, name=None):
+
+    @tf.custom_gradient
+    def _log_K_custom_gradient(v, x, n, m):
+        return _log_K(v, x, n, m), lambda u: _log_K_grad(n, m, u)
+
+    def _log_K_grad(n, m, u):
+        logkv = _log_K_custom_gradient(v, x, n, m)
+        dlogkvdv = tk.exp(_log_K_custom_gradient(v, x, n + 1, m) - logkv)
+        dlogkvdx = tk.exp(_log_K_custom_gradient(v, x, n, m + 1) - logkv)
+        if m % 2 == 0:
+            dlogkvdx *= -1
+        return u * dlogkvdv, u * dlogkvdx
+
     with tf.name_scope(name or 'bessel_K_tk2'):
         x = tf.convert_to_tensor(x)
         v = tf.convert_to_tensor(v, x.dtype)
         return _log_K_custom_gradient(v, x, n=0, m=0)
-
-
-@tf.custom_gradient
-def _log_K_custom_gradient(v, x, n, m):
-    return _log_K(v, x, n, m), lambda u: _log_K_grad(v, x, n, m, u)
-
-
-def _log_K_grad(v, x, n, m, u):
-    logkv = _log_K_custom_gradient(v, x, n, m)
-    dlogkvdv = tk.exp(_log_K_custom_gradient(v, x, n + 1, m) - logkv)
-    dlogkvdx = tk.exp(_log_K_custom_gradient(v, x, n, m + 1) - logkv)
-    if m % 2 == 0:
-        dlogkvdx *= -1
-    return u * dlogkvdv, u * dlogkvdx
 
 
 def _log_K(v, x, n, m, dt0=1., n_iter=5, bins=128):
@@ -66,8 +64,9 @@ def _log_K(v, x, n, m, dt0=1., n_iter=5, bins=128):
         t0 = tpm
         dt = tf.where(func_mth(tpm) > 0., -tpm, zero)
     else:
-        t0 = tf.where((func_mth(zero) < 0.) & (func_mth(tpm) > 0.),  tpm, zero)
-        dt = tf.where((func_mth(zero) < 0.) & (func_mth(tpm) > 0.), -tpm, zero)
+        have_zero = (func_mth(zero) < 0.) & (func_mth(tpm) > 0.)
+        t0 = tf.where(have_zero,  tpm, zero)
+        dt = tf.where(have_zero, -tpm, zero)
     ts = find_zero(func_mth, t0, dt, n_iter)
 
     t0 = tk.maximum(tp + bins * eps, tp * (1. + bins * eps))

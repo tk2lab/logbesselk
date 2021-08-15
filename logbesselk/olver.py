@@ -1,42 +1,47 @@
 import tensorflow as tf
-import numpy as np
 
 from . import math as tk
-from .utils import log_bessel_recurrence
+from .utils import wrap_log_k
 
 
-def _log_K(v, x):
+@wrap_log_k
+def log_bessel_k(v, x):
+    return log_k_olver(v, x)
+
+
+def _log_bessel_k(v, x, mask=None):
     """
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
     """
 
-    def _next_factor(prev, k):
-        fac = [0.] * (3 * k + 4)
-        for i in range(k, 3 * k + 1, 2):
-            fac[i + 1] += prev[i] * (0.5 * i + 0.125 / (i + 1.))
-            fac[i + 3] -= prev[i] * (0.5 * i + 0.625 / (i + 3.))
-        return fac
-
-    def _u(factor, k, q):
-        uk = 0.
-        for fac in reversed(factor):
-            uk = uk / q + fac
-        return uk
+    def get_ui_and_next_factor(factor, i):
+        ui = 0.
+        fac = [0.] * (i + 2)
+        for j in reversed(range(i + 1)):
+            ui = ui * q + factor[j]
+            k = i + 2 * j
+            fac[j] += factor[j] * (0.5 * k + 0.125 / (k + 1.))
+            fac[j + 1] -= factor[j] * (0.5 * k + 0.625 / (k + 3.))
+        return ui, fac
 
     n_factors = 10
 
-    v_abs = tk.abs(v)
-    q = tk.sqrt(1. + tk.square(x / v_abs))
+    x = tf.convert_to_tensor(x)
+    v = tf.convert_to_tensor(v, x.dtype)
+    if mask is not None:
+        mask = tf.convert_to_tensor(mask, tf.bool)
 
-    sum_uv = 0.
+    p = tk.sqrt(tk.square(v) + tk.square(x))
+    q = tk.square(v) / (tk.square(v) + tk.square(x))
+
+    sum_up = 0.
     factor = [1.]
-    for k in range(n_factors):
-        sum_uv += _u(factor, k, q) / tk.pow(-v_abs, k)
-        factor = _next_factor(factor, k)
+    for i in range(n_factors):
+        ui, factor = get_ui_and_next_factor(factor, i)
+        sum_up += ui / tk.pow(-p, i)
 
     return (
-        0.5 * tk.log(0.5 * np.pi / (v_abs * q))
-        + v_abs * tk.log((v_abs + v_abs * q) / x)
-        - v_abs * q
-        + tf.math.log(sum_uv)
+        0.5 * tk.log(0.5 * tk.pi / p)
+        + v * tk.log((v + p) / x) - p
+        + tk.log(sum_up)
     )

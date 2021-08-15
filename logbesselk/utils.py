@@ -60,10 +60,12 @@ def find_zero(func, x, dx, n_iter):
     return x0
 
 
-def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
+def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):
 
     def cond(ki, kj, ui, ni):
-        return tf.reduce_any(ni != 0.)
+        if mask is None:
+            return tf.reduce_any(ni != 0.)
+        return tf.reduce_any(mask & (ni != 0.))
 
     def body(ki, kj, ui, ni):
         uj = ui + tk.sign(ni)
@@ -76,3 +78,25 @@ def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
 
     init = log_ku, log_kup1, u, n
     return tf.while_loop(cond, body, init)[:2]
+
+
+def wrap_log_k(native_log_k):
+
+    def wraped_log_k(v, x, name=None):
+
+        @tf.custom_gradient
+        def _log_K_custom_gradient(v, x):
+            return native_log_k(v, x), _log_K_grad
+
+        def _log_K_grad(u):
+            logkv = _log_K_custom_gradient(v, x)
+            logkvm1 = _log_K_custom_gradient(v - 1, x)
+            dlogkvdx = - v / x - tk.exp(logkvm1 - logkv)
+            return None, u * dlogkvdx
+
+        with tf.name_scope(name or 'bessel_K'):
+            x = tf.convert_to_tensor(x)
+            v = tf.convert_to_tensor(v, x.dtype)
+            return _log_K_custom_gradient(v, x)
+
+    return wraped_log_k
