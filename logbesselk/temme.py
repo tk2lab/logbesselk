@@ -55,6 +55,8 @@ def _log_bessel_ku(v, x, mask=None):
         lj = li + cj * (pj - j * fj)
         return kj, lj, j, cj, pj, qj, fj
 
+    max_iter = 100
+
     x = tf.convert_to_tensor(x)
     v = tf.convert_to_tensor(v, x.dtype)
     if mask is not None:
@@ -76,6 +78,6 @@ def _log_bessel_ku(v, x, mask=None):
     l0 = c0 * (p0 - i * f0)
     init = k0, l0, i, c0, p0, q0, f0
 
-    ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=1000)
+    ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=max_iter)
     log_ku, log_kup1 = tk.log(ku), tk.log(kn) - lxh
     return log_ku, log_kup1

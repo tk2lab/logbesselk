@@ -6,7 +6,7 @@ from .utils import wrap_log_k
 
 @wrap_log_k
 def log_bessel_k(v, x):
-    return log_bessel_k(v, x)
+    return _log_bessel_k(v, x)
 
 
 def _log_bessel_k(v, x, mask=None):
@@ -20,8 +20,8 @@ def _log_bessel_k(v, x, mask=None):
         for j in reversed(range(i + 1)):
             ui = ui * q + factor[j]
             k = i + 2 * j
-            fac[j] += factor[j] * (0.5 * k + 0.125 / (k + 1.))
-            fac[j + 1] -= factor[j] * (0.5 * k + 0.625 / (k + 3.))
+            fac[j + 0] -= factor[j] * (0.5 * k + 0.125 / (k + 1.))
+            fac[j + 1] += factor[j] * (0.5 * k + 0.625 / (k + 3.))
         return ui, fac
 
     max_iter = 100
@@ -39,7 +39,7 @@ def _log_bessel_k(v, x, mask=None):
     sum_up = 0.
     for i in range(max_iter):
         ui, factor = get_ui_and_next_factor(factor, i)
-        diff = ui / tk.pow(-p, i)
+        diff = ui / tk.pow(p, i)
         sum_up += diff
         nonzero_update = tk.abs(diff) > tol * tf.abs(sum_up)
         if mask is not None:
