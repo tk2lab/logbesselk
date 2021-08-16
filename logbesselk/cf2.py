@@ -27,7 +27,7 @@ def _log_bessel_ku(v, x, mask=None):
 
     def body(si, ri, i, bi, ci, di, fp, fi, gi, hi):
         j = i + 1.
-        aj = tf.square(i + 0.5) - tf.square(u)
+        aj = tf.square(j - 0.5) - tf.square(u)
         bj = 2. * (x + j)
 
         cj = 1. / (bj - aj * ci)
@@ -56,13 +56,13 @@ def _log_bessel_ku(v, x, mask=None):
     b1 = 2. * x + 2.
 
     c1 = 1. / b1
-    d1 = a1 * c1
+    d1 = a1 / b1
     r1 = d1
 
     f0 = tf.zeros_like(v * x)
     f1 = tf.ones_like(v * x)
     g1 = tf.ones_like(v * x)
-    h1 = 0. + f1 * g1
+    h1 = f1 * g1
     s1 = 1. + d1 * h1
 
     init = s1, r1, i, b1, c1, d1, f0, f1, g1, h1
