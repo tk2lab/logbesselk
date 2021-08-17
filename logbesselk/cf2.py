@@ -56,17 +56,17 @@ def _log_bessel_ku(v, x, mask=None):
     b1 = 2. * x + 2.
 
     c1 = 1. / b1
-    d1 = a1 / b1
+    d1 = 1. / b1
     r1 = d1
 
     f0 = tf.zeros_like(v * x)
     f1 = tf.ones_like(v * x)
-    g1 = tf.ones_like(v * x)
+    g1 = a1
     h1 = f1 * g1
     s1 = 1. + d1 * h1
 
     init = s1, r1, i, b1, c1, d1, f0, f1, g1, h1
     sn, rn, *_ = tf.while_loop(cond, body, init, maximum_iterations=max_iter)
     log_ku = 0.5 * tk.log(0.5 * tk.pi / x) - x - tk.log(sn)
-    log_kup1 = log_ku + tk.log((0.5 + u + x - rn) / x)
+    log_kup1 = log_ku + tk.log((0.5 + u + x - a1 * rn) / x)
     return log_ku, log_kup1
