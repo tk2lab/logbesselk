@@ -47,10 +47,13 @@ def _log_K(v, x, n, m, dt0=1., n_iter=5, bins=128):
     eps = tk.epsilon(dtype)
     zero = tf.zeros(shape, dtype)
     dt0 = dt0 * tf.ones(shape, dtype)
-    deriv1 = get_deriv_func(func)
+    deriv = get_deriv_func(func)
 
-    t0, t1 = extend(deriv1, zero, zero + dt0)
-    tp = find_zero(deriv1, t0, t1, n_iter)
+    dt = dt0
+    if n == 0:
+        dt = tf.where(tf.square(v) + m <= x, zero, dt)
+    t0, t1 = extend(deriv, zero, dt)
+    tp = find_zero(deriv, t0, t1, n_iter)
     th = func(tp) + tk.log(eps)
 
     tpm = tk.maximum(tp - bins * eps, 0.)
