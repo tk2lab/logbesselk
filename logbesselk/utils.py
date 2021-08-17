@@ -29,10 +29,10 @@ def extend(func, x, dx):
     f1 = func(x1)
     init = x0, x1, f0, f1
     x0, x1, f0, f1 = tf.while_loop(cond, body, init)
-    return x1, x0, f1, x0
+    return x1, x0
 
 
-def find_zero(func, x, dx, n_iter):
+def find_zero(func, x0, x1, n_iter):
 
     def cond(x0, x1, f0, f1):
         return True
@@ -55,7 +55,9 @@ def find_zero(func, x, dx, n_iter):
         return x0_new, x1_new, f0_new, f1_new
 
     deriv = get_deriv_func(func)
-    init = extend(func, x, dx)
+    f0 = func(x0)
+    f1 = func(x1)
+    init = x0, x1, f0, f1
     x0, x1, f0, f1 = tf.while_loop(cond, body, init, maximum_iterations=n_iter)
     return x0
 

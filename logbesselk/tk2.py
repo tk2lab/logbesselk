@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from . import math as tk
-from .utils import get_deriv_func, find_zero
+from .utils import get_deriv_func, extend, find_zero
 
 
 def log_bessel_k(v, x, name=None):
@@ -49,14 +49,10 @@ def _log_K(v, x, n, m, dt0=1., n_iter=5, bins=128):
     dt0 = dt0 * tf.ones(shape, dtype)
     deriv1 = get_deriv_func(func)
 
-    if n > 0:
-        t0 = zero
-        dt = dt0
-    else:
-        deriv2 = get_deriv_func(deriv1)
-        t0 = tf.where(deriv2(zero) > 0., eps, zero)
-        dt = tf.where(deriv1(t0) > 0., dt0, zero) 
-    tp = find_zero(deriv1, t0, dt, n_iter)
+    t0 = zero
+    dt = dt0
+    t0, t1 = extend(deriv1, t0, dt)
+    tp = find_zero(deriv1, t0, t1, n_iter)
     th = func(tp) + tk.log(eps)
 
     tpm = tk.maximum(tp - bins * eps, 0.)
@@ -67,11 +63,13 @@ def _log_K(v, x, n, m, dt0=1., n_iter=5, bins=128):
         have_zero = (func_mth(zero) < 0.) & (func_mth(tpm) > 0.)
         t0 = tf.where(have_zero,  tpm, zero)
         dt = tf.where(have_zero, -tpm, zero)
-    ts = find_zero(func_mth, t0, dt, n_iter)
+    t0, t1 = extend(func_mth, t0, dt)
+    ts = find_zero(func_mth, t0, t1, n_iter)
 
     t0 = tk.maximum(tp + bins * eps, tp * (1. + bins * eps))
     dt = tf.where(func_mth(t0) > 0., dt0, zero)
-    te = find_zero(func_mth, t0, dt, n_iter)
+    t0, t1 = extend(func_mth, t0, dt)
+    te = find_zero(func_mth, t0, t1, n_iter)
 
     t = tf.linspace(ts, te, bins + 1, axis=0)
     eft = tk.exp(func(t) - func(tp))
