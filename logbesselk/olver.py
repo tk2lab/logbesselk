@@ -14,16 +14,16 @@ def _log_bessel_k(v, x, mask=None):
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
     """
 
-    def local_cond(ui, new_fac, j, prev_fac):
+    def local_cond(ui, next_fac, j, i, factor):
         return j >= 0
 
-    def local_body(ui, next_fac, j, factor):
-        ui = ui * q + factor[j]
+    def local_body(ui, next_fac, j, i, factor):
         k = tf.cast(i + 2 * j, x.dtype)
+        ui = ui * q + factor[j]
         u0 = -factor[j] * (0.5 * k + 0.125 / (k + 1.))
         u1 =  factor[j] * (0.5 * k + 0.625 / (k + 3.))
         next_fac = tf.tensor_scatter_nd_add(next_fac, [[j], [j + 1]], [u0, u1])
-        return ui, next_fac, j - 1, factor
+        return ui, next_fac, j - 1, i, factor
 
     def cond(sum_up, factor, pi, i, diff):
         nonzero_update = tk.abs(diff) > tol * tf.abs(sum_up)
@@ -34,7 +34,7 @@ def _log_bessel_k(v, x, mask=None):
     def body(sum_up, factor, pi, i, diff):
         ui = tf.zeros_like(v * x)
         next_fac = tf.zeros_like(factor)
-        init = ui, next_fac, i + 1, factor
+        init = ui, next_fac, i, i, factor
         ui, factor = tf.while_loop(local_cond, local_body, init)[:2]
         diff = ui / pi
         sum_up += diff
