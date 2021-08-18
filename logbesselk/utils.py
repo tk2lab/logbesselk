@@ -60,17 +60,18 @@ def find_zero(func, x0, x1, n_iter):
 def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):
 
     def cond(ki, kj, ui, ni):
-        if mask is None:
-            return tf.reduce_any(ni != 0.)
-        return tf.reduce_any(mask & (ni != 0.))
+        should_update = ~tf.equal(ni, 0)
+        if mask is not None:
+            should_update &= mask
+        return tf.reduce_any(should_update)
 
     def body(ki, kj, ui, ni):
-        uj = ui + tk.sign(ni)
+        uj = ui + tk.sign(tf.cast(ni, x.dtype))
         nj = ni - tk.sign(ni)
         kp = tk.log_add_exp(ki, kj + tk.log(2. * uj / x))
         km = tk.log_sub_exp(kj, ki + tk.log(2. * ui / x))
-        kj = tf.where(tf.equal(ni, 0.), ki, tf.where(ni > 0, kj, km))
-        kk = tf.where(tf.equal(ni, 0.), kj, tf.where(ni > 0, kp, ki))
+        kj = tf.where(tf.equal(ni, 0), ki, tf.where(ni > 0, kj, km))
+        kk = tf.where(tf.equal(ni, 0), kj, tf.where(ni > 0, kp, ki))
         return kj, kk, uj, nj
 
     init = log_ku, log_kup1, u, n

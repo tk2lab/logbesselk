@@ -15,8 +15,8 @@ def log_bessel_k(v, x):
 
     small_v = (tk.abs(v) < 50.) & (x > 0.)
     large_v = (tk.abs(v) >= 50.) & (x > 0.)
-    small_x = small_v & (x < 2.) & (x > 0.)
-    large_x = small_v & (x >= 2.)
+    small_x = small_v & (x <= 2.)
+    large_x = small_v & (x > 2.)
 
     log_k = tf.cast(tk.nan, x.dtype) # x < 0.
     log_k = tf.where(tf.equal(x, 0.), tf.cast(tk.inf, x.dtype), log_k)
@@ -24,6 +24,7 @@ def log_bessel_k(v, x):
 
     n = tk.round(v)
     u = v - n
+    n = tf.cast(n, tf.int32)
     log_ku0_temme, log_ku1_temme = log_ku_temme(u, x, small_x)
     log_ku0___cf2, log_ku1___cf2 = log_ku___cf2(u, x, large_x)
     log_ku0 = tf.where(small_x, log_ku0_temme, log_ku0___cf2)
