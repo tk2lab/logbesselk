@@ -12,24 +12,20 @@ def get_deriv_func(func):
     return deriv
 
 
-def extend(func, x, dx):
+def extend(func, x0, dx):
 
-    def cond(x0, x1, f0, f1):
-        return tf.reduce_any((x0 != x1) & (f1 > 0))
+    def cond(x, d, f1):
+        return tf.reduce_any(~tf.equal(dx, 0.) & (f1 > 0))
 
-    def body(x0, x1, f0, f1):
-        x0_new = tf.where(f1 > 0, x1, x0)
-        f0_new = tf.where(f1 > 0, f1, f0)
-        x1_new = tf.where(f1 > 0, x0 + 3 * (x1 - x0), x1)
-        f1_new = tf.where(f1 > 0, func(x1_new), f1)
-        return x0_new, x1_new, f0_new, f1_new
+    def body(x, d, f1):
+        f1 = func(x + d)
+        x = tf.where(f1 > 0., x + d, x)
+        d = tf.where(f1 > 0., d * dx, d)
+        return x, d, f1
 
-    x0, x1 = x, x + dx
-    f0 = func(x0)
-    f1 = func(x1)
-    init = x0, x1, f0, f1
-    x0, x1, f0, f1 = tf.while_loop(cond, body, init)
-    return x1, x0
+    init = x0, dx, tf.ones_like(x0)
+    x, d, _ = tf.while_loop(cond, body, init)
+    return x + d, x
 
 
 def find_zero(func, x0, x1, n_iter):
@@ -44,7 +40,7 @@ def find_zero(func, x0, x1, n_iter):
         dx = - f0 / deriv(x0) / (x1 - x0)
         dx_in_range = (0.0 < dx) & (dx < 0.5)
         x_newton = tf.where(dx_in_range, x0 + dx * (x1 - x0), x0)
-        f_newton = tf.where(dx_in_range, func(x_newton), f0)
+        f_newton = func(x_newton)
 
         c_shrink = f_shrink < 0
         c_newton = f_newton < 0
@@ -58,8 +54,7 @@ def find_zero(func, x0, x1, n_iter):
     f0 = func(x0)
     f1 = func(x1)
     init = x0, x1, f0, f1
-    x0, x1, f0, f1 = tf.while_loop(cond, body, init, maximum_iterations=n_iter)
-    return x0
+    return tf.while_loop(cond, body, init, maximum_iterations=n_iter)[0]
 
 
 def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):

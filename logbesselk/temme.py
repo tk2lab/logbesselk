@@ -7,11 +7,13 @@ from .utils import log_bessel_recurrence
 
 @wrap_log_k
 def log_bessel_k(v, x):
-    log_ku, log_kup1 = log_bessel_ku(v, x)
-    return _log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
+    n = tk.round(v)
+    u = v - n
+    log_ku, log_kup1 = _log_bessel_ku(u, x)
+    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
 
 
-def _log_bessel_ku(v, x, mask=None):
+def _log_bessel_ku(u, x, mask=None):
     """
     N.M. Temme.
     On the numerical evaluation of the modified Bessel function
@@ -58,19 +60,17 @@ def _log_bessel_ku(v, x, mask=None):
     max_iter = 100
 
     x = tf.convert_to_tensor(x)
-    v = tf.convert_to_tensor(v, x.dtype)
+    u = tf.convert_to_tensor(u, x.dtype)
     if mask is not None:
         mask = tf.convert_to_tensor(mask, tf.bool)
 
     tol = tk.epsilon(x.dtype)
-    n = tk.round(v)
-    u = v - n
     gp, gm = calc_gamma(u)
     lxh = tk.log(0.5 * x)
     mu = u * lxh
 
     i = tf.cast(0., x.dtype)
-    c0 = tf.ones_like(v * x)
+    c0 = tf.ones_like(u * x)
     p0 = 0.5 * tk.exp(-mu) / (gp - u * gm)
     q0 = 0.5 * tk.exp( mu) / (gp + u * gm)
     f0 = (gm * tk.cosh(mu) - gp * lxh * tk.sinhc(mu)) / tk.sinc(u)

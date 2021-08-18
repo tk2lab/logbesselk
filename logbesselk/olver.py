@@ -14,15 +14,31 @@ def _log_bessel_k(v, x, mask=None):
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
     """
 
-    def get_ui_and_next_factor(factor, i):
-        ui = 0.
-        fac = [0.] * (i + 2)
-        for j in reversed(range(i + 1)):
-            ui = ui * q + factor[j]
-            k = i + 2 * j
-            fac[j + 0] -= factor[j] * (0.5 * k + 0.125 / (k + 1.))
-            fac[j + 1] += factor[j] * (0.5 * k + 0.625 / (k + 3.))
-        return ui, fac
+    def local_cond(ui, new_fac, j, prev_fac):
+        return j >= 0
+
+    def local_body(ui, next_fac, j, factor):
+        ui = ui * q + factor[j]
+        k = tf.cast(i + 2 * j, x.dtype)
+        u0 = -factor[j] * (0.5 * k + 0.125 / (k + 1.))
+        u1 =  factor[j] * (0.5 * k + 0.625 / (k + 3.))
+        next_fac = tf.tensor_scatter_nd_add(next_fac, [[j], [j + 1]], [u0, u1])
+        return ui, next_fac, j - 1, factor
+
+    def cond(sum_up, factor, pi, i, diff):
+        nonzero_update = tk.abs(diff) > tol * tf.abs(sum_up)
+        if mask is not None:
+            nonzero_update &= mask
+        return tf.reduce_any(nonzero_update)
+
+    def body(sum_up, factor, pi, i, diff):
+        ui = tf.zeros_like(v * x)
+        next_fac = tf.zeros_like(factor)
+        init = ui, next_fac, i + 1, factor
+        ui, factor = tf.while_loop(local_cond, local_body, init)[:2]
+        diff = ui / pi
+        sum_up += diff
+        return sum_up, factor, pi * p, i + 1, diff
 
     max_iter = 100
 
@@ -35,17 +51,13 @@ def _log_bessel_k(v, x, mask=None):
     p = tk.sqrt(tk.square(v) + tk.square(x))
     q = tk.square(v) / (tk.square(v) + tk.square(x))
 
-    factor = [1.]
-    sum_up = 0.
-    for i in range(max_iter):
-        ui, factor = get_ui_and_next_factor(factor, i)
-        diff = ui / tk.pow(p, i)
-        sum_up += diff
-        nonzero_update = tk.abs(diff) > tol * tf.abs(sum_up)
-        if mask is not None:
-            nonzero_update &= mask
-        if tf.reduce_all(~nonzero_update):
-            break
+    sum_up = tf.zeros_like(v * x)
+    factor = tf.ones((max_iter,), x.dtype)
+    pi = tf.ones_like(p)
+    i = tf.cast(0, tf.int32)
+    diff = tf.ones_like(v * x) # dummy
+    init = sum_up, factor, pi, i, diff
+    sum_up = tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
 
     return (
         0.5 * tk.log(0.5 * tk.pi / p)

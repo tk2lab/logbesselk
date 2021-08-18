@@ -7,11 +7,13 @@ from .utils import log_bessel_recurrence
 
 @wrap_log_k
 def log_bessel_k(v, x):
-    log_ku, log_kup1 = log_ku(v, x)
-    return _log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
+    n = tk.round(v)
+    u = v - n
+    log_ku, log_kup1 = _log_bessel_ku(u, x)
+    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
 
 
-def _log_bessel_ku(v, x, mask=None):
+def _log_bessel_ku(u, x, mask=None):
     """
     I.J. Thompson and A.R. Barnett,
     Modified Bessel function Iv(z) and Kv(z) and real order
@@ -43,13 +45,11 @@ def _log_bessel_ku(v, x, mask=None):
     max_iter = 100
 
     x = tf.convert_to_tensor(x)
-    v = tf.convert_to_tensor(v, x.dtype)
+    u = tf.convert_to_tensor(u, x.dtype)
     if mask is not None:
         mask = tf.convert_to_tensor(mask, tf.bool)
 
     tol = tk.epsilon(x.dtype)
-    n = tk.round(v)
-    u = v - n
 
     i = tf.cast(1., x.dtype)
     a1 = 0.25 - tf.square(u)
@@ -59,8 +59,8 @@ def _log_bessel_ku(v, x, mask=None):
     d1 = 1. / b1
     r1 = d1
 
-    f0 = tf.zeros_like(v * x)
-    f1 = tf.ones_like(v * x)
+    f0 = tf.zeros_like(u * x)
+    f1 = tf.ones_like(u * x)
     g1 = a1
     h1 = f1 * g1
     s1 = 1. + d1 * h1
