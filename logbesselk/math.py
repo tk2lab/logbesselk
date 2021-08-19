@@ -7,6 +7,10 @@ inf = np.inf
 nan = np.nan
 
 
+is_nan = tf.math.is_nan
+is_finite = tf.math.is_finite
+
+
 minimum = tf.math.minimum
 maximum = tf.math.maximum
 
