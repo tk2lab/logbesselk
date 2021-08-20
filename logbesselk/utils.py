@@ -3,12 +3,12 @@ import tensorflow as tf
 from . import math as tk
 
 
-def get_deriv_func(func):
-    def deriv(x):
+def get_deriv_func(func, i=0):
+    def deriv(*args):
         with tf.GradientTape() as g:
-            g.watch(x)
-            f = func(x)
-        return g.gradient(f, x)
+            g.watch(args)
+            f = func(*args)
+        return g.gradient(f, args[i])
     return deriv
 
 
