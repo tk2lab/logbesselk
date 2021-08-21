@@ -6,10 +6,10 @@ from .utils import wrap_log_k
 
 @wrap_log_k
 def log_bessel_k(v, x):
-    return _log_bessel_k(v, x)
+    return _log_bessel_k(v, x)[0]
 
 
-def _log_bessel_k(v, x, mask=None):
+def _log_bessel_k(v, x, mask=None, max_iter=100):
     """
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
     """
@@ -25,22 +25,22 @@ def _log_bessel_k(v, x, mask=None):
         next_fac = tf.tensor_scatter_nd_add(next_fac, [[j], [j + 1]], [u0, u1])
         return ui, next_fac, j - 1, i, factor
 
-    def cond(sum_up, factor, pi, i, update):
+    def cond(target, update, factor, i, pi):
+        update = update == i
         if mask is not None:
             update &= mask
         return tf.reduce_any(update)
 
-    def body(sum_up, factor, pi, i, update):
+    def body(target, update, factor, i, pi):
         ui = tf.zeros_like(v * x)
         next_fac = tf.zeros_like(factor)
         init = ui, next_fac, i, i, factor
         ui, factor = tf.while_loop(local_cond, local_body, init)[:2]
         diff = ui / pi
-        sum_up = tf.where(update, sum_up + diff, sum_up)
-        update &= tk.abs(diff) > tol * tf.abs(sum_up)
-        return sum_up, factor, pi * p, i + 1, update
-
-    max_iter = 100
+        converge = tk.log(tk.abs(diff)) <= tk.log(tol) + tf.abs(const)
+        target = tf.where(converge, target + diff, target)
+        update = tf.where(converge, update, update + 1)
+        return target, update, factor, i + 1, pi * p
 
     x = tf.convert_to_tensor(x)
     v = tf.convert_to_tensor(v, x.dtype)
@@ -51,16 +51,11 @@ def _log_bessel_k(v, x, mask=None):
     p = tk.sqrt(tk.square(v) + tk.square(x))
     q = tk.square(v) / (tk.square(v) + tk.square(x))
 
-    sum_up = tf.zeros_like(v * x)
+    const = 0.5 * tk.log(0.5 * tk.pi / p) + v * tk.log((v + p) / x) - p
+    target = tf.zeros_like(v * x)
+    update = tf.zeros_like(v * x, tf.int32)
     factor = tf.ones((max_iter,), x.dtype)
-    pi = tf.ones_like(p)
     i = tf.cast(0, tf.int32)
-    update = tf.ones_like(v * x, bool)
-    init = sum_up, factor, pi, i, update
-    sum_up = tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
-
-    return (
-        0.5 * tk.log(0.5 * tk.pi / p)
-        + v * tk.log((v + p) / x) - p
-        + tk.log(sum_up)
-    )
+    pi = tf.ones_like(p)
+    init = target, update, factor, i, pi
+    return tf.while_loop(cond, body, init, maximum_iterations=max_iter)[:2]
