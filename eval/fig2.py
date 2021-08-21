@@ -8,10 +8,15 @@ from . import common
 
 
 def main(debug=False):
-    df = pd.read_csv('figs/logk_time_results.csv')
-    df['time'] *= 1000
+    dfs = []
+    for name in ['I', 'A', 'S', 'C']:
+        df = pd.read_csv(f'figs/logk_prec_{name}.csv')
+        df['type'] = name
+        dfs.append(df)
+    df = pd.concat(dfs, axis=0)
+
     name = [['I', 'A'], ['S', 'C']]
-    pos = [[[0.1, 0.85], [0.85, 0.1]], [[0.1, 0.1], [0.1, 0.85]]]
+    pos = [[[0.1, 0.85], [0.85, 0.1]], [[0.85, 0.1], [0.1, 0.85]]]
 
     fig = common.figure(figsize=(5.5, 4), box=debug)
     ax = fig.subplots(
@@ -26,12 +31,13 @@ def main(debug=False):
 
     for i in range(2):
         for j in range(2):
-            hm = df.query(f'type=="{name[i][j]}"').pivot("x", "v", "time")
+            hm = df.query(f'type=="{name[i][j]}"').pivot("x", "v", "log_err")
+            hm[~np.isfinite(hm)] = 100.0
             if i == j == 0:
                 args = dict(cbar_ax=cbar)
             else:
                 args = dict(cbar=False)
-            sns.heatmap(hm, vmin=0, vmax=28, cmap='Blues', ax=ax[i, j], **args)
+            sns.heatmap(hm, vmin=0, vmax=2.8, cmap='Reds', ax=ax[i, j], **args)
             ax[i, j].invert_yaxis()
             ax[i, j].text(*pos[i][j], name[i][j], transform=ax[i, j].transAxes)
             ax[i, j].set_xticks([40*np.log10(x+1) for x in xticks])
@@ -49,10 +55,10 @@ def main(debug=False):
             else:
                 ax[i, j].set_ylabel('')
     cbar = ax[0, 0].collections[0].colorbar
-    cbar.set_ticks([0, 10, 20])
-    cbar.set_ticklabels([f'${{{l}}}$' for l in [0, 10, 20]])
+    cbar.set_ticks([0, 1, 2])
+    cbar.set_ticklabels([f'${{{l}}}\epsilon$' for l in [0, 9, 99]])
 
-    fig.savefig('figs/fig3.pdf')
+    fig.savefig('figs/fig2.pdf')
 
 
 if __name__ == '__main__':
