@@ -1,40 +1,19 @@
+import tensorflow as tf
 import pandas as pd
 import numpy as np
-import tensorflow as tf
-import tensorflow_probability as tfp
 
 
-from logbesselk.mixed import log_bessel_k as log_K_mixed
-from logbesselk.olver import log_bessel_k as log_K_olver
-from logbesselk.temme import log_bessel_k as log_K_temme
-from logbesselk.cf2 import log_bessel_k as log_K_cf2
-from logbesselk.tk2 import log_bessel_k as log_K_tk2
-
-
-def log_K_tfp(v, x):
-    return tfp.math.log_bessel_kve(v, x) - x
-
-
-def dlogK_dv(log_K):
-    def deriv(v, x):
-        with tf.GradientTape() as g:
-            g.watch([v, x])
-            z = log_K(v, x)
-        return g.gradient(z, v)
-    return deriv
-
-
-def dlogK_dx(log_K):
-    def deriv(v, x):
-        with tf.GradientTape() as g:
-            g.watch([v, x])
-            z = log_K(v, x)
-        return g.gradient(z, x)
-    return deriv
+from logbesselk.series import log_bessel_k as log_K_S
+from logbesselk.cfraction import log_bessel_k as log_K_C
+from logbesselk.asymptotic import log_bessel_k as log_K_A
+from logbesselk.integral import log_bessel_k as log_K_I
+from logbesselk.conventional import log_bessel_k as log_K_SCA
+from logbesselk.proposed import log_bessel_k as log_K_IA
+from .tfp import log_bessel_k as log_K_tfp
 
 
 def eval_prec(csvfile, dtype, funcs):
-    funcs = {name: tf.function(func) for name, func in funcs.items()}
+    #`funcs = {name: tf.function(func) for name, func in funcs.items()}
 
     df0 = pd.read_csv(csvfile)
     v = tf.convert_to_tensor(df0['v'], dtype)
@@ -57,15 +36,16 @@ def eval_prec(csvfile, dtype, funcs):
 
 def eval_prec_log_k(dtype):
     funcs = dict(
-        tfp=log_K_tfp,
-        mixed=log_K_mixed,
-        #olver=log_K_olver,
-        #temme=log_K_temme,
-        #cf2=log_K_cf2,
-        tk2=log_K_tk2,
+        SCAtfp=log_K_tfp,
+        SCA=log_K_SCA,
+        IA=log_K_IA,
+        I=log_K_I,
+        A=log_K_A,
+        S=log_K_S,
+        C=log_K_C,
     )
-    df = eval_prec('tests/logk_grid_mathematica.csv', dtype, funcs)
-    df.to_csv('tests/logk_grid_results.csv', index=None)
+    df = eval_prec('tests/logk_grid3_mathematica.csv', dtype, funcs)
+    df.to_csv('tests/logk_grid3_results.csv', index=None)
 
 
 def eval_prec_log_k_smallv(dtype):
