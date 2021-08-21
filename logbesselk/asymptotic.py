@@ -25,20 +25,20 @@ def _log_bessel_k(v, x, mask=None):
         next_fac = tf.tensor_scatter_nd_add(next_fac, [[j], [j + 1]], [u0, u1])
         return ui, next_fac, j - 1, i, factor
 
-    def cond(sum_up, factor, pi, i, diff):
-        nonzero_update = tk.abs(diff) > tol * tf.abs(sum_up)
+    def cond(sum_up, factor, pi, i, update):
         if mask is not None:
-            nonzero_update &= mask
-        return tf.reduce_any(nonzero_update)
+            update &= mask
+        return tf.reduce_any(update)
 
-    def body(sum_up, factor, pi, i, diff):
+    def body(sum_up, factor, pi, i, update):
         ui = tf.zeros_like(v * x)
         next_fac = tf.zeros_like(factor)
         init = ui, next_fac, i, i, factor
         ui, factor = tf.while_loop(local_cond, local_body, init)[:2]
         diff = ui / pi
-        sum_up += diff
-        return sum_up, factor, pi * p, i + 1, diff
+        sum_up = tf.where(update, sum_up + diff, sum_up)
+        update &= tk.abs(diff) > tol * tf.abs(sum_up)
+        return sum_up, factor, pi * p, i + 1, update
 
     max_iter = 100
 
@@ -55,8 +55,8 @@ def _log_bessel_k(v, x, mask=None):
     factor = tf.ones((max_iter,), x.dtype)
     pi = tf.ones_like(p)
     i = tf.cast(0, tf.int32)
-    diff = tf.ones_like(v * x) # dummy
-    init = sum_up, factor, pi, i, diff
+    update = tf.ones_like(v * x, bool)
+    init = sum_up, factor, pi, i, update
     sum_up = tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
 
     return (

@@ -8,7 +8,7 @@ def log_bessel_k(v, x, name=None):
 
     @tf.custom_gradient
     def _log_K_custom_gradient(v, x, n, m):
-        return _log_K(v, x, n, m), lambda u: _log_K_grad(n, m, u)
+        return _log_bessel_k(v, x, n, m), lambda u: _log_K_grad(n, m, u)
 
     def _log_K_grad(n, m, u):
         logkv = _log_K_custom_gradient(v, x, n, m)
@@ -23,7 +23,10 @@ def log_bessel_k(v, x, name=None):
         return _log_K_custom_gradient(v, x, 0, 0)
 
 
-def _log_K(v, x, n, m, dt0=1., tol=1., n_iter_peak=3, n_iter_range=3, bins=64):
+def _log_bessel_k(
+        v, x, n=0, m=0, mask=None,
+        dt0=1., tol=1., n_iter_peak=10, n_iter_range=10, bins=128,
+):
 
     def func(t):
         out = tf.where(
@@ -48,21 +51,28 @@ def _log_K(v, x, n, m, dt0=1., tol=1., n_iter_peak=3, n_iter_range=3, bins=64):
     nf = tf.cast(n, x.dtype)
     mf = tf.cast(m, x.dtype)
 
-    dt = tf.where(tf.equal(n, 0) & (tf.square(v) + mf <= x), zero, dt0)
+    positive_peak = ~tf.equal(n, 0) | (tf.square(v) + mf > x)
+    if mask is not None:
+        positive_peak &= mask
+    dt = tf.where(positive_peak, dt0, zero)
     ts, te = extend(deriv, zero, dt)
     tp = find_zero(deriv, ts, te, tol, n_iter_peak)
     th = func(tp) + tk.log(eps)
 
     tpm = tk.maximum(tp - bins * eps, 0.)
-    no_zero = func_mth(zero) >= 0.
-    ts = tf.where(no_zero, zero,  tpm)
-    dt = tf.where(no_zero, zero, -tpm)
-    ts, te = extend(func_mth, ts, dt)
+    zero_exists = func_mth(zero) < 0.
+    if mask is not None:
+        zero_exists &= mask
+    ts = tf.where(zero_exists,  tpm, zero)
+    ts, te = extend(func_mth, ts, -ts)
     t0 = find_zero(func_mth, ts, te, tol, n_iter_range)
 
-    ts = tk.maximum(tp + bins * eps, tp * (1. + bins * eps))
-    dt = tf.where(func_mth(ts) > 0., dt0, zero)
-    ts, te = extend(func_mth, ts, dt)
+    tpp = tk.maximum(tp + bins * eps, tp * (1. + bins * eps))
+    zero_exists = func_mth(tpp) > 0.
+    if mask is not None:
+        zero_exists &= mask
+    dt = tf.where(zero_exists, dt0, zero)
+    ts, te = extend(func_mth, tpp, dt)
     t1 = find_zero(func_mth, ts, te, tol, n_iter_range)
 
     t = tf.linspace(t0, t1, bins + 1, axis=0)
