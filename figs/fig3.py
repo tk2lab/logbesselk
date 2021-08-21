@@ -31,7 +31,7 @@ def main(debug=False):
                 args = dict(cbar_ax=cbar)
             else:
                 args = dict(cbar=False)
-            sns.heatmap(hm, vmin=0, vmax=28, cmap='Reds', ax=ax[i, j], **args)
+            sns.heatmap(hm, vmin=0, vmax=28, cmap='Blues', ax=ax[i, j], **args)
             ax[i, j].invert_yaxis()
             ax[i, j].text(*pos[i][j], name[i][j], transform=ax[i, j].transAxes)
             ax[i, j].set_xticks([40*np.log10(x+1) for x in xticks])
@@ -50,10 +50,10 @@ def main(debug=False):
                 ax[i, j].set_ylabel('')
     cbar = ax[0, 0].collections[0].colorbar
     cbar.set_ticks([0, 10, 20])
-    cbar.set_ticklabels([f'${{{l}}}\epsilon$' for l in [0, 10, 20]])
+    cbar.set_ticklabels([f'${{{l}}}$' for l in [0, 10, 20]])
 
     fig.savefig('figs/fig3.pdf')
 
 
 if __name__ == '__main__':
-    main(debug=True)
+    main(debug=False)
