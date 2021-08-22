@@ -32,38 +32,31 @@ def eval_time(func, v, x, n_trial):
     return pd.DataFrame(results, columns=['v', 'x', 'trial', 'time'])
 
 
-def eval_time_log_k(dtype, n_trial):
+def eval_time_log_k(name, func, dtype, n_trial):
+    df = pd.read_csv(f'data/logk_prec_{name}.csv')
+    v = tf.convert_to_tensor(df['v'], dtype)
+    x = tf.convert_to_tensor(df['x'], dtype)
+    e = tf.convert_to_tensor(df['log_err'], dtype)
+    vmask = tf.boolean_mask(v, e < 4.)
+    xmask = tf.boolean_mask(x, e < 4.)
+    df = eval_time(func, vmask, xmask, n_trial)
+    df.to_csv(f'data/logk_time_{name}.csv', index=None)
+
+
+if __name__ == '__main__':
+    dtype = tf.float64
+    n_trial = 10
     funcs = dict(
         #S=log_K_S,
         #C=log_K_C,
         #I=log_K_I,
         #A=log_K_A,
-        #SCAtfp=log_K_tfp,
         #SCA=log_K_SCA,
         #IA=log_K_IA,
-        I10=lambda v, x: log_K_I(v, x, max_iter=10),
+        #tfp=log_K_tfp,
+        #I10=lambda v, x: log_K_I(v, x, max_iter=10),
+        I20=lambda v, x: log_K_I(v, x, max_iter=20),
     )
-
-    #v = tf.convert_to_tensor(10 ** np.linspace(0, 2, 81) - 1, dtype)
-    #x = tf.convert_to_tensor(10 ** np.linspace(-1, 2.1, 125), dtype)
-    #v, x = tf.meshgrid(v, x)
-    #v = tf.reshape(v, (-1,))
-    #x = tf.reshape(x, (-1,))
-    dfs = []
     for name, func in funcs.items():
-        print(name)
-        df = pd.read_csv(f'data/logk_prec_{name}.csv')
-        v = tf.convert_to_tensor(df['v'], dtype)
-        x = tf.convert_to_tensor(df['x'], dtype)
-        e = tf.convert_to_tensor(df['log_err'], dtype)
-        vmask = tf.boolean_mask(v, e < 4.)
-        xmask = tf.boolean_mask(x, e < 4.)
-        df = eval_time(func, vmask, xmask, n_trial)
-        df['type'] = name
-        dfs.append(df)
-    df = pd.concat(dfs, axis=0)
-    df.to_csv('data/logk_time.csv', index=None)
-
-
-if __name__ == '__main__':
-    eval_time_log_k(tf.float64, 10)
+        print('log_k', name)
+        eval_time_log_k(name, func, dtype, n_trial)

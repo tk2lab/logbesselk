@@ -20,15 +20,7 @@ def eval_prec(func, v, x, t):
     return pd.DataFrame(dict(v=v, x=x, true=t, value=k, err=e, log_err=e2))
 
 
-def eval_prec_log_k(dtype):
-    funcs = dict(
-        #A=log_K_A,
-        #S=log_K_S,
-        #C=log_K_C,
-        #I=log_K_I,
-        I10=lambda v, x: log_K_I(v, x, max_iter=10),
-    )
-
+def eval_prec_log_k(funcs, dtype):
     df0 = pd.read_csv('data/logk_mathematica.csv')
     v = tf.convert_to_tensor(df0['v'], dtype)
     x = tf.convert_to_tensor(df0['x'], dtype)
@@ -42,4 +34,14 @@ def eval_prec_log_k(dtype):
 
 
 if __name__ == '__main__':
-    eval_prec_log_k(tf.float64)
+    dtype = tf.float64
+    funcs = dict(
+        #A=log_K_A,
+        #S=log_K_S,
+        #C=log_K_C,
+        #I=log_K_I,
+        #tfp=log_K_tfp,
+        #I10=lambda v, x: log_K_I(v, x, max_iter=10),
+        I20=lambda v, x: log_K_I(v, x, max_iter=20),
+    )
+    eval_prec_log_k(funcs, dtype)
