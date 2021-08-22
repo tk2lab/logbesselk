@@ -8,15 +8,20 @@ from . import common
 
 
 def main(debug=False):
-    dfs = []
-    for name in ['I', 'A', 'S', 'C']:
-        df = pd.read_csv(f'figs/logk_prec_{name}.csv')
-        df['type'] = name
-        dfs.append(df)
-    df = pd.concat(dfs, axis=0)
-    df['time'] *= 1000
+    df0 = []
+    for name in ['S', 'C', 'A', 'I10']:
+        prec = pd.read_csv(f'data/logk_prec_{name}.csv')
+        prec = prec.groupby(['v', 'x'])['log_err'].mean()
+        time = pd.read_csv(f'data/logk_time_{name}.csv')
+        time = time.groupby(['v', 'x'])['time'].mean()
+        tmp = pd.concat([prec, time], axis=1)
+        tmp['time'] = np.where(tmp['log_err'] < 3, 1000 * tmp['time'], np.nan)
+        tmp = tmp['time']
+        tmp.name = name
+        df0.append(tmp)
+    df0 = pd.concat(df0, axis=1)
 
-    name = [['I', 'A'], ['S', 'C']]
+    name = [['I10', 'A'], ['S', 'C']]
     pos = [[[0.1, 0.85], [0.85, 0.1]], [[0.1, 0.1], [0.1, 0.85]]]
 
     fig = common.figure(figsize=(5.5, 4), box=debug)
@@ -30,19 +35,20 @@ def main(debug=False):
     xticks = [0, 1, 5, 10, 50]
     yticks = [0.1, 0.5, 1, 5, 10, 50]
 
+    cmap = plt.get_cmap('Blues').copy()
+    cmap.set_bad(color='gray')
     for i in range(2):
         for j in range(2):
-            dfx = df.query(f'type=="{name[i][j]}"')
-            hm = dfx.pivot('x', 'v', 'time', aggfunc=np.mean)
+            hm = df0[name[i][j]].unstack(0)
             if i == j == 0:
                 args = dict(cbar_ax=cbar)
             else:
                 args = dict(cbar=False)
-            sns.heatmap(hm, vmin=0, vmax=28, cmap='Blues', ax=ax[i, j], **args)
+            sns.heatmap(hm, vmin=0, vmax=28, cmap=cmap, ax=ax[i, j], **args)
             ax[i, j].invert_yaxis()
             ax[i, j].text(*pos[i][j], name[i][j], transform=ax[i, j].transAxes)
             ax[i, j].set_xticks([40*np.log10(x+1) for x in xticks])
-            ax[i, j].set_xticklabels([f"${k}$" for k in xticks])
+            ax[i, j].set_xticklabels([f"${k}$" for k in xticks], rotation=0)
             ax[i, j].xaxis.set_ticks_position('both')
             ax[i, j].set_yticks([40*(np.log10(x)+1) for x in yticks])
             ax[i, j].set_yticklabels([f"${k}$" for k in yticks])

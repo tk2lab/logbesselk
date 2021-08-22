@@ -5,7 +5,7 @@ import numpy as np
 from logbesselk.series import log_bessel_k as log_K_S
 from logbesselk.cfraction import log_bessel_k as log_K_C
 from logbesselk.asymptotic import log_bessel_k as log_K_A
-from logbesselk.integral import log_bessel_k as log_K_I
+from logbesselk.integral import _log_bessel_k as log_K_I
 from logbesselk.conventional import log_bessel_k as log_K_SCA
 from logbesselk.proposed import log_bessel_k as log_K_IA
 from .tfp import log_bessel_k as log_K_tfp
@@ -22,10 +22,11 @@ def eval_prec(func, v, x, t):
 
 def eval_prec_log_k(dtype):
     funcs = dict(
-        A=log_K_A,
-        S=log_K_S,
-        C=log_K_C,
-        I=log_K_I,
+        #A=log_K_A,
+        #S=log_K_S,
+        #C=log_K_C,
+        #I=log_K_I,
+        I10=lambda v, x: log_K_I(v, x, max_iter=10),
     )
 
     df0 = pd.read_csv('data/logk_mathematica.csv')
@@ -36,7 +37,7 @@ def eval_prec_log_k(dtype):
     for name, func in funcs.items():
         print(name)
         df = eval_prec(func, v, x, t)
-        df.to_csv(f'figs/logk_prec_{name}.csv', index=None)
+        df.to_csv(f'data/logk_prec_{name}.csv', index=None)
         print(df['log_err'].mean(), df['log_err'].max())
 
 

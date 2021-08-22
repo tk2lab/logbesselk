@@ -23,8 +23,8 @@ def log_bessel_k(v, x, name=None):
         return _log_K_custom_gradient(v, x, 0, 0)
 
 
-def _log_bessel_k(
-        v, x, n=0, m=0, mask=None, dt0=1., tol=1., n_iter=100, bins=128):
+def _log_bessel_k(v, x, n=0, m=0,
+                  mask=None, dt0=1., tol=1., max_iter=100, bins=128):
 
     def func(t):
         out = tf.where(
@@ -54,7 +54,7 @@ def _log_bessel_k(
         positive_peak &= mask
     dt = tf.where(positive_peak, dt0, zero)
     ts, te = extend(deriv, zero, dt)
-    tp = find_zero(deriv, ts, te, tol, n_iter)
+    tp = find_zero(deriv, ts, te, tol, max_iter)
     th = func(tp) + tk.log(eps)
 
     tpm = tk.maximum(tp - bins * eps, 0.)
@@ -63,7 +63,7 @@ def _log_bessel_k(
         zero_exists &= mask
     ts = tf.where(zero_exists,  tpm, zero)
     ts, te = extend(func_mth, ts, -ts)
-    t0 = find_zero(func_mth, ts, te, tol, n_iter)
+    t0 = find_zero(func_mth, ts, te, tol, max_iter)
 
     tpp = tk.maximum(tp + bins * eps, tp * (1. + bins * eps))
     zero_exists = func_mth(tpp) > 0.
@@ -71,7 +71,7 @@ def _log_bessel_k(
         zero_exists &= mask
     dt = tf.where(zero_exists, dt0, zero)
     ts, te = extend(func_mth, tpp, dt)
-    t1 = find_zero(func_mth, ts, te, tol, n_iter)
+    t1 = find_zero(func_mth, ts, te, tol, max_iter)
 
     t = tf.linspace(t0, t1, bins + 1, axis=0)
     eft = tk.exp(func(t) - func(tp))

@@ -9,13 +9,13 @@ from . import common
 
 def main(debug=False):
     dfs = []
-    for name in ['I', 'A', 'S', 'C']:
-        df = pd.read_csv(f'figs/logk_prec_{name}.csv')
+    for name in ['I10', 'A', 'S', 'C']:
+        df = pd.read_csv(f'data/logk_prec_{name}.csv')
         df['type'] = name
         dfs.append(df)
     df = pd.concat(dfs, axis=0)
 
-    name = [['I', 'A'], ['S', 'C']]
+    name = [['I10', 'A'], ['S', 'C']]
     pos = [[[0.1, 0.85], [0.85, 0.1]], [[0.85, 0.1], [0.1, 0.85]]]
 
     fig = common.figure(figsize=(5.5, 4), box=debug)
@@ -41,7 +41,7 @@ def main(debug=False):
             ax[i, j].invert_yaxis()
             ax[i, j].text(*pos[i][j], name[i][j], transform=ax[i, j].transAxes)
             ax[i, j].set_xticks([40*np.log10(x+1) for x in xticks])
-            ax[i, j].set_xticklabels([f"${k}$" for k in xticks])
+            ax[i, j].set_xticklabels([f"${k}$" for k in xticks], rotation=0)
             ax[i, j].xaxis.set_ticks_position('both')
             ax[i, j].set_yticks([40*(np.log10(x)+1) for x in yticks])
             ax[i, j].set_yticklabels([f"${k}$" for k in yticks])
@@ -56,7 +56,7 @@ def main(debug=False):
                 ax[i, j].set_ylabel('')
     cbar = ax[0, 0].collections[0].colorbar
     cbar.set_ticks([0, 1, 2])
-    cbar.set_ticklabels([f'${{{l}}}\epsilon$' for l in [0, 9, 99]])
+    cbar.set_ticklabels([f'${{{l}}}$' for l in [0, 1, 2]])
 
     fig.savefig('figs/fig2.pdf')
 

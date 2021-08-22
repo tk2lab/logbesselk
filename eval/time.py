@@ -6,7 +6,7 @@ from tqdm import tqdm
 from logbesselk.series import log_bessel_k as log_K_S
 from logbesselk.cfraction import log_bessel_k as log_K_C
 from logbesselk.asymptotic import _log_bessel_k as log_K_A
-from logbesselk.integral import log_bessel_k as log_K_I
+from logbesselk.integral import _log_bessel_k as log_K_I
 from logbesselk.conventional import log_bessel_k as log_K_SCA
 from logbesselk.proposed import log_bessel_k as log_K_IA
 from .tfp import log_bessel_k as log_K_tfp
@@ -34,16 +34,16 @@ def eval_time(func, v, x, n_trial):
 
 def eval_time_log_k(dtype, n_trial):
     funcs = dict(
-        S=log_K_S,
-        C=log_K_C,
-        I=log_K_I,
-        A=log_K_A,
-        SCAtfp=log_K_tfp,
-        SCA=log_K_SCA,
-        IA=log_K_IA,
+        #S=log_K_S,
+        #C=log_K_C,
+        #I=log_K_I,
+        #A=log_K_A,
+        #SCAtfp=log_K_tfp,
+        #SCA=log_K_SCA,
+        #IA=log_K_IA,
+        I10=lambda v, x: log_K_I(v, x, max_iter=10),
     )
 
-    df0 = pd.read_csv('figs/logk_prec.csv')
     #v = tf.convert_to_tensor(10 ** np.linspace(0, 2, 81) - 1, dtype)
     #x = tf.convert_to_tensor(10 ** np.linspace(-1, 2.1, 125), dtype)
     #v, x = tf.meshgrid(v, x)
@@ -52,7 +52,7 @@ def eval_time_log_k(dtype, n_trial):
     dfs = []
     for name, func in funcs.items():
         print(name)
-        df = df0.query(f'type=="{name}"')
+        df = pd.read_csv(f'data/logk_prec_{name}.csv')
         v = tf.convert_to_tensor(df['v'], dtype)
         x = tf.convert_to_tensor(df['x'], dtype)
         e = tf.convert_to_tensor(df['log_err'], dtype)
@@ -62,7 +62,7 @@ def eval_time_log_k(dtype, n_trial):
         df['type'] = name
         dfs.append(df)
     df = pd.concat(dfs, axis=0)
-    df.to_csv('figs/logk_time.csv', index=None)
+    df.to_csv('data/logk_time.csv', index=None)
 
 
 if __name__ == '__main__':
