@@ -8,20 +8,22 @@ from . import common
 
 
 def main(debug=False):
+    name = ['I', 'A', 'S', 'C']
+    suffix = [10, '', '', '']
     df0 = []
-    for name in ['S', 'C', 'A', 'I10']:
-        prec = pd.read_csv(f'data/logk_prec_{name}.csv')
+    for n, s in zip(name, suffix):
+        prec = pd.read_csv(f'results/logk_prec_{n}{s}.csv')
         prec = prec.groupby(['v', 'x'])['log_err'].mean()
-        time = pd.read_csv(f'data/logk_time_{name}.csv')
+        time = pd.read_csv(f'results/logk_time_{n}{s}.csv')
         time = time.groupby(['v', 'x'])['time'].mean()
         tmp = pd.concat([prec, time], axis=1)
         tmp['time'] = np.where(tmp['log_err'] < 3, 1000 * tmp['time'], np.nan)
         tmp = tmp['time']
-        tmp.name = name
+        tmp.name = n
         df0.append(tmp)
     df0 = pd.concat(df0, axis=1)
 
-    name = [['I10', 'A'], ['S', 'C']]
+    name = [['I', 'A'], ['S', 'C']]
     pos = [[[0.1, 0.85], [0.85, 0.1]], [[0.1, 0.1], [0.1, 0.85]]]
 
     fig = common.figure(figsize=(5.5, 4), box=debug)
@@ -35,7 +37,7 @@ def main(debug=False):
     xticks = [0, 1, 5, 10, 50]
     yticks = [0.1, 0.5, 1, 5, 10, 50]
 
-    cmap = plt.get_cmap('Blues').copy()
+    cmap = plt.get_cmap('Greys').copy()
     cmap.set_bad(color='gray')
     for i in range(2):
         for j in range(2):

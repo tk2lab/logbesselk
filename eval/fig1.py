@@ -13,7 +13,7 @@ def f0(t, v, x):
 
 def main(debug=False):
     fig = common.figure(figsize=(5.5, 4), box=debug)
-    ax = fig.subplots(2, 2, sharex=True, sharey=True)
+    ax = fig.subplots(2, 2, sharex=True, sharey='col')
 
     t = np.linspace(0, 5, 1001)
     for v, x in [(0.5, 0.25), (0.5, 0.5), (1, 1), (1, 2), (2, 4)]:
@@ -32,8 +32,11 @@ def main(debug=False):
     ax[0,0].set_ylabel('$f(t)$')
     ax[1,0].set_ylabel('normalized $f(t)$')
 
+    name = [['a', 'c'], ['b', 'd']]
+    pos = [[[0.1, 0.85], [0.1, 0.85]], [[0.1, 0.15], [0.1, 0.85]]]
     for i in range(2):
         for j in range(2):
+            ax[i, j].text(*pos[i][j], name[i][j], transform=ax[i, j].transAxes)
             if i == 1:
                 ax[i,j].set_xlabel('$t$')
             ax[i,j].legend()
