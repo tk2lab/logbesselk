@@ -25,7 +25,7 @@ def extend(func, x0, dx):
 
     init = x0, dx, tf.ones_like(x0)
     x, d, _ = tf.while_loop(cond, body, init)
-    return x + d, x
+    return x, x + d
 
 
 def find_zero(func, x0, x1, tol, max_iter):
