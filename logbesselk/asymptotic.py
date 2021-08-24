@@ -10,7 +10,7 @@ def log_bessel_k(v, x):
     return _log_bessel_k(v, x)
 
 
-def _log_bessel_k(v, x, mask=None, max_iter=10, return_counter=False):
+def _log_bessel_k(v, x, mask=None, max_iter=30, return_counter=False):
     """
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
     """
