@@ -14,17 +14,17 @@ def main(debug=False):
         gridspec_kw=dict(width_ratios=(0.33,1.)),
     )
 
-    df = pd.read_csv('results/dlogk_dv_prec_I10.csv')
+    df = pd.read_csv('results/log_dkdv_prec_I10.csv')
     df['type'] = 'I'
     ax[0] = sns.boxenplot(x='type', y='log_err', data=df, ax=ax[0], k_depth='full', color='white')
     ax[0].text(0.1, 0.9, 'a', transform=ax[0].transAxes)
     ax[0].set_ylabel('err ($\log (\Delta/\epsilon + 1)$)')
 
     name = ['I', 'SCA', 'tfp']
-    suffix = [10, '', '']
+    suffix = ['10', '', '']
     dfs = []
     for n, s in zip(name, suffix):
-        df = pd.read_csv(f'results/dlogk_dx_prec_{n}{s}.csv')
+        df = pd.read_csv(f'results/log_dkdx_prec_{n}{s}.csv')
         df['type'] = n
         dfs.append(df)
     df = pd.concat(dfs, axis=0)
