@@ -10,7 +10,7 @@ from . import common
 
 def main(debug=False):
     name = ['I', 'SCA', 'tfp']
-    suffix = [10, '', '']
+    suffix = ['', '', '']
     dfs = []
     for n, s in zip(name, suffix):
         df = pd.read_csv(f'results/logk_scale_{n}{s}.csv')

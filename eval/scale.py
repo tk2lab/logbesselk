@@ -13,7 +13,7 @@ from .tfp import log_bessel_k as log_K_tfp
 from .timer import Timer
 
 
-def eval_scale(funcs, dtype, size, n_trial):
+def eval_scale(funcs, dtype, size, n_trial, suffix=''):
     funcs = {name: tf.function(func) for name, func in funcs.items()}
     for name, func in funcs.items():
         results = []
@@ -28,25 +28,19 @@ def eval_scale(funcs, dtype, size, n_trial):
                     results.append([name, s, n, timer.duration[-1]])
             print(name, s, np.mean(timer.duration[1:]))
         df = pd.DataFrame(results, columns=['type', 'size', 'trial', 'time'])
-        df.to_csv(f'results/logk_scale_{name}.csv', index=None)
-
-
-def eval_scale_log_k(dtype):
-    df = eval_scale([2 ** n for n in range(16)], funcs, dtype, 10)
+        df.to_csv(f'results/logk_scale_{name}{suffix}.csv', index=None)
 
 
 if __name__ == '__main__':
-    dtype = tf.float64
-    size = [2 ** n for n in range(0, 18)]
-    n_trial = 100
+
     funcs = dict(
-        I10=lambda v, x: log_K_I(v, x, max_iter=10),
+        I=log_K_I,
         SCA=log_K_SCA,
         tfp=log_K_tfp,
-        #S=log_K_S,
-        #C=log_K_C,
-        #A=log_K_A,
-        #IA=log_K_IA,
-        #I100=log_K_I,
+        #I100=lambda v, x: log_K_I(v, x, max_iter=100),
     )
-    eval_scale(funcs, dtype, size, n_trial)
+    size = [2 ** n for n in range(0, 18)]
+    n_trial = 100
+
+    for suffix, dtype in [('', tf.float64), ('32', tf.float32)]:
+        eval_scale(funcs, dtype, size, n_trial, suffix)

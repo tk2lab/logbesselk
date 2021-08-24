@@ -9,7 +9,7 @@ from . import common
 
 def main(debug=False):
     name = ['I', 'A', 'S', 'C']
-    max_iter = [10, '', '', '']
+    max_iter = ['', '', '', '']
     dfs = []
     for n, i in zip(name, max_iter):
         df = pd.read_csv(f'results/logk_prec_{n}{i}.csv')

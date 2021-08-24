@@ -16,16 +16,9 @@ def x_loc(x):
     return 40*(np.log10(x) + 1)
 
 
-thr_v = 35.0
-
-
-def thr_x(v):
-    return 1.6 + 0.5 * np.log(v + 1)
-
-
 def main(debug=False):
     name = ['I', 'SCA', 'tfp']
-    suffix = [10, '', '']
+    suffix = ['', '', '']
     df = []
     for n, s in zip(name, suffix):
         prec = pd.read_csv(f'results/logk_prec_{n}{s}.csv')
@@ -37,13 +30,6 @@ def main(debug=False):
         time.name = f'time_{n}'
         df += [prec, time]
     df = pd.concat(df, axis=1)
-
-    #v, x = [np.array(z) for z in zip(*df.index)]
-    #for t in ['prec', 'time']:
-    #    df[f'{t}_SCA'] = df[f'{t}_S']
-    #    df.loc[x < thr_x(v), f'{t}_SCA'] = df[f'{t}_S']
-    #    df.loc[x >= thr_x(v), f'{t}_SCA'] = df[f'{t}_C']
-    #    df.loc[v >= thr_v, f'{t}_SCA'] = df[f'{t}_A']
 
     df['diff_prec'] = df['prec_SCA'] - df['prec_I']
     df['diff_time'] = df['time_SCA'] - df['time_I']
@@ -71,12 +57,7 @@ def main(debug=False):
     fig = common.figure(figsize=(5.5, 4), box=debug)
     ax = fig.subplots(
         2, 2, sharex='col',
-        #gridspec_kw=dict(width_ratios=(1,1,0.15)),
     )
-    #ax[0, 2].set_visible(False)
-    #ax[1, 2].set_visible(False)
-    #ax[0, 2] = fig.add_axes([0.93, 0.1, 0.02, 0.4])
-    #ax[1, 2] = fig.add_axes([0.93, 0.55, 0.02, 0.4])
     vticks = [0, 1, 5, 10, 50]
     xticks = [0.1, 0.5, 1, 5, 10, 50]
 
@@ -88,14 +69,6 @@ def main(debug=False):
         for j in [0]:
             hm = df[name[i][j]].unstack(0)
             sns.heatmap(hm, vmin=vmin[i][j], vmax=vmax[i][j], cmap=cmap[i][j], ax=ax[i, j])
-            v = np.linspace(0, thr_v, 100)
-            x = thr_x(v)
-            v = v_loc(v)
-            x = x_loc(x)
-            '''
-            ax[i, j].plot(v, x, c='k')
-            ax[i, j].plot([v_loc(thr_v), v_loc(thr_v)], [x_loc(0.1), x_loc(10**2.1)], c='k')
-            '''
             ax[i, j].invert_yaxis()
             ax[i, j].set_xticks([v_loc(v) for v in vticks])
             ax[i, j].set_xticklabels([f"${k}$" for k in vticks], rotation=0)

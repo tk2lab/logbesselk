@@ -9,7 +9,7 @@ from . import common
 
 def main(debug=False):
     name = ['I', 'A', 'S', 'C']
-    suffix = [10, '', '', '']
+    suffix = ['', '', '', '']
     df0 = []
     for n, s in zip(name, suffix):
         prec = pd.read_csv(f'results/logk_prec_{n}{s}.csv')

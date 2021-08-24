@@ -21,7 +21,7 @@ def main(debug=False):
     thr_x = lambda v: 1.6 + 0.5 * np.log(v + 1)
 
     name = ['I', 'A', 'S', 'C', 'SCA']
-    suffix = [10, 30, '', '', '']
+    suffix = ['', '', '', '', '']
     df = []
     for n, s in zip(name, suffix):
         prec = pd.read_csv(f'results/logk_prec_{n}{s}.csv')
