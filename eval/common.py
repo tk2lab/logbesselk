@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 
 
 def figure(*args, box=False, **kwargs):
+    plt.style.use('grayscale')
     plt.rcParams["figure.dpi"] = 120
     plt.rcParams['xtick.direction'] = 'in'
     plt.rcParams['ytick.direction'] = 'in'
