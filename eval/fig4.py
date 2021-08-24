@@ -101,7 +101,7 @@ def main(debug=False):
             ax[i, j].invert_yaxis()
             ax[i, j].text(*pos[i][j], label[i][j], transform=ax[i, j].transAxes)
             ax[i, j].text(v_loc(5), x_loc(0.5), 'S')
-            ax[i, j].text(v_loc(5), x_loc(10), 'C')
+            ax[i, j].text(v_loc(2), x_loc(6), 'C')
             ax[i, j].text(v_loc(50), x_loc(1), 'A')
             ax[i, j].set_xticks([v_loc(v) for v in vticks])
             ax[i, j].set_xticklabels([f"${k}$" for k in vticks], rotation=0)
