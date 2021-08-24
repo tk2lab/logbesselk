@@ -7,20 +7,20 @@ from .utils import get_deriv_func, extend, find_zero
 def log_bessel_k(v, x, name=None):
 
     @tf.custom_gradient
-    def _log_K_custom_gradient(v, x, n, m):
-        return _log_bessel_k(v, x, n, m), lambda u: _log_K_grad(n, m, u)
+    def _custom_gradient(v, x, n, m):
+        return _log_bessel_k(v, x, n, m), lambda u: _grad(n, m, u)
 
-    def _log_K_grad(n, m, u):
-        logkv = _log_K_custom_gradient(v, x, n, m)
-        dlogkvdv = tk.exp(_log_K_custom_gradient(v, x, n + 1, m) - logkv)
-        dlogkvdx = tk.exp(_log_K_custom_gradient(v, x, n, m + 1) - logkv)
+    def _K_grad(n, m, u):
+        logkv = _custom_gradient(v, x, n, m)
+        dlogkvdv = tk.exp(_custom_gradient(v, x, n + 1, m) - logkv)
+        dlogkvdx = tk.exp(_custom_gradient(v, x, n, m + 1) - logkv)
         dlogkvdx = tf.where(tf.equal(m % 2, 0), -dlogkvdx, dlogkvdx)
         return u * dlogkvdv, u * dlogkvdx, None, None
 
     with tf.name_scope(name or 'bessel_K_tk2'):
         x = tf.convert_to_tensor(x)
         v = tf.convert_to_tensor(v, x.dtype)
-        return _log_K_custom_gradient(v, x, 0, 0)
+        return _custom_gradient(v, x, 0, 0)
 
 
 def _log_bessel_k(v, x, n=0, m=0,
