@@ -15,7 +15,7 @@ def log_bessel_k(v, x, name=None):
         dlogkvdv = tk.exp(_log_K_custom_gradient(v, x, n + 1, m) - logkv)
         dlogkvdx = tk.exp(_log_K_custom_gradient(v, x, n, m + 1) - logkv)
         dlogkvdx = tf.where(tf.equal(m % 2, 0), -dlogkvdx, dlogkvdx)
-        return u * dlogkvdv, u * dlogkvdx
+        return u * dlogkvdv, u * dlogkvdx, None, None
 
     with tf.name_scope(name or 'bessel_K_tk2'):
         x = tf.convert_to_tensor(x)
@@ -38,16 +38,24 @@ def _log_bessel_k(v, x, n=0, m=0,
     def func_mth(t):
         return func(t) - th
 
-    dtype = (v * x).dtype
-    shape = (v * x).shape
+    x = tf.convert_to_tensor(x)
+    v = tf.convert_to_tensor(v, x.dtype)
+    if mask is None:
+        mask = tf.ones_like(v * x, tf.bool)
+    else:
+        mask = tf.convert_to_tensor(mask, tf.bool)
+    mask &= (x > 0.) & tf.where(n > 0, ~tf.equal(v, 0.), tf.cast(1, tf.bool))
 
-    eps = tk.epsilon(dtype)
-    zero = tf.zeros(shape, dtype)
-    dt0 = dt0 * tf.ones(shape, dtype)
+    eps = tk.epsilon(x.dtype)
+    zero = tf.zeros_like(v * x)
+    dt0 = dt0 * tf.ones_like(v * x)
     deriv = get_deriv_func(func)
 
     nf = tf.cast(n, x.dtype)
     mf = tf.cast(m, x.dtype)
+
+    out = tf.cast(tk.nan, x.dtype) # x < 0.
+    out = tf.where(tf.equal(x, 0.), tf.cast(tk.inf, x.dtype), out)
 
     positive_peak = ~tf.equal(n, 0) | (tf.square(v) + mf > x)
     if mask is not None:
@@ -61,9 +69,7 @@ def _log_bessel_k(v, x, n=0, m=0,
     zero_exists = func_mth(zero) < 0.
     if mask is not None:
         zero_exists &= mask
-    ts = tf.where(zero_exists,  tpm, zero)
-    ts, te = extend(func_mth, ts, -ts)
-    t0 = find_zero(func_mth, ts, te, tol, max_iter)
+    t0 = find_zero(func_mth, zero, tpm, tol, max_iter)
 
     tpp = tk.maximum(tp + bins * eps, tp * (1. + bins * eps))
     zero_exists = func_mth(tpp) > 0.
@@ -73,7 +79,7 @@ def _log_bessel_k(v, x, n=0, m=0,
     ts, te = extend(func_mth, tpp, dt)
     t1 = find_zero(func_mth, ts, te, tol, max_iter)
 
-    t = tf.linspace(t0, t1, bins + 1, axis=0)
-    eft = tk.exp(func(t) - func(tp))
-    sum_eft = tk.sum(eft, axis=0) - 0.5 * (eft[0] + eft[-1])
-    return func(tp) + tk.log(sum_eft * (t1 - t0) / bins)
+    t = tf.linspace(t0, t1, 2 * bins + 1, axis=0)[1:-1:2]
+    h = (t1 - t0) / bins
+    sum_eft = tk.sum(tk.exp(func(t) - func(tp)), axis=0)
+    return tf.where(mask, func(tp) + tk.log(h * sum_eft), out)
