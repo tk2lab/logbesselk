@@ -7,13 +7,14 @@ from .utils import log_bessel_recurrence
 
 @wrap_log_k
 def log_bessel_k(v, x):
+    v = tk.abs(v)
     n = tk.round(v)
     u = v - n
     log_ku, log_kup1 = _log_bessel_ku(u, x)
     return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
 
 
-def _log_bessel_ku(u, x, mask=None):
+def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
     """
     N.M. Temme.
     On the numerical evaluation of the modified Bessel function
@@ -57,8 +58,6 @@ def _log_bessel_ku(u, x, mask=None):
         lj = li + cj * (pj - j * fj)
         return kj, lj, j, cj, pj, qj, fj
 
-    max_iter = 100
-
     x = tf.convert_to_tensor(x)
     u = tf.convert_to_tensor(u, x.dtype)
     if mask is not None:
@@ -78,6 +77,12 @@ def _log_bessel_ku(u, x, mask=None):
     l0 = c0 * (p0 - i * f0)
     init = k0, l0, i, c0, p0, q0, f0
 
-    ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=max_iter)
+    ku, kn, counter, *_ = tf.while_loop(
+        cond, body, init, maximum_iterations=max_iter,
+    )
     log_ku, log_kup1 = tk.log(ku), tk.log(kn) - lxh
+
+    if return_counter:
+        return log_ku, log_kup1, counter
+
     return log_ku, log_kup1

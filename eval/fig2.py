@@ -8,14 +8,16 @@ from . import common
 
 
 def main(debug=False):
+    name = ['I', 'A', 'S', 'C']
+    max_iter = ['', '', '', '']
     dfs = []
-    for name in ['I10', 'A', 'S', 'C']:
-        df = pd.read_csv(f'data/logk_prec_{name}.csv')
-        df['type'] = name
+    for n, i in zip(name, max_iter):
+        df = pd.read_csv(f'results/logk_prec_{n}{i}.csv')
+        df['type'] = n
         dfs.append(df)
     df = pd.concat(dfs, axis=0)
 
-    name = [['I10', 'A'], ['S', 'C']]
+    name = [['I', 'A'], ['S', 'C']]
     pos = [[[0.1, 0.85], [0.85, 0.1]], [[0.85, 0.1], [0.1, 0.85]]]
 
     fig = common.figure(figsize=(5.5, 4), box=debug)
@@ -37,7 +39,7 @@ def main(debug=False):
                 args = dict(cbar_ax=cbar)
             else:
                 args = dict(cbar=False)
-            sns.heatmap(hm, vmin=0, vmax=2.8, cmap='Reds', ax=ax[i, j], **args)
+            sns.heatmap(hm, vmin=0, vmax=2.8, cmap='Greys', ax=ax[i, j], **args)
             ax[i, j].invert_yaxis()
             ax[i, j].text(*pos[i][j], name[i][j], transform=ax[i, j].transAxes)
             ax[i, j].set_xticks([40*np.log10(x+1) for x in xticks])

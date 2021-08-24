@@ -25,6 +25,7 @@ pow = tf.math.pow
 
 log = tf.math.log
 log1p = tf.math.log1p
+xlogy = tf.math.xlogy
 
 exp = tf.math.exp
 expm1 = tf.math.expm1

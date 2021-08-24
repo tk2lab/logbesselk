@@ -7,13 +7,14 @@ from .utils import log_bessel_recurrence
 
 @wrap_log_k
 def log_bessel_k(v, x):
+    v = tk.abs(v)
     n = tk.round(v)
     u = v - n
     log_ku, log_kup1 = _log_bessel_ku(u, x)
     return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
 
 
-def _log_bessel_ku(u, x, mask=None):
+def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
     """
     I.J. Thompson and A.R. Barnett,
     Modified Bessel function Iv(z) and Kv(z) and real order
@@ -42,8 +43,6 @@ def _log_bessel_ku(u, x, mask=None):
         sj = si + dj * hj
         return sj, rj, j, bj, cj, dj, fi, fj, gj, hj
 
-    max_iter = 100
-
     x = tf.convert_to_tensor(x)
     u = tf.convert_to_tensor(u, x.dtype)
     if mask is not None:
@@ -66,7 +65,12 @@ def _log_bessel_ku(u, x, mask=None):
     s1 = 1. + d1 * h1
 
     init = s1, r1, i, b1, c1, d1, f0, f1, g1, h1
-    sn, rn, *_ = tf.while_loop(cond, body, init, maximum_iterations=max_iter)
+    sn, rn, counter, *_ = tf.while_loop(
+        cond, body, init, maximum_iterations=max_iter,
+    )
     log_ku = 0.5 * tk.log(0.5 * tk.pi / x) - x - tk.log(sn)
     log_kup1 = log_ku + tk.log((0.5 + u + x - a1 * rn) / x)
+
+    if return_counter:
+        return log_ku, log_kup1, counter
     return log_ku, log_kup1
