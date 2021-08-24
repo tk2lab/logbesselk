@@ -48,10 +48,8 @@ def find_zero(func, x0, x1, tol, max_iter):
         f0_new = tf.where(c_shrink, f_shrink, tf.where(c_newton, f_newton, f0))
         x1_new = tf.where(c_shrink, x1, tf.where(c_newton, x_shrink, x_newton))
         f1_new = tf.where(c_shrink, f1, tf.where(c_newton, f_shrink, f_newton))
-        #tf.print(x0_new, x1_new, dx * (x1 - x0), f0_new, f1_new)
         return x0_new, x1_new, f0_new, f1_new
 
-    #tf.print('start')
     deriv = get_deriv_func(func)
     f0 = func(x0)
     f1 = func(x1)
@@ -62,19 +60,18 @@ def find_zero(func, x0, x1, tol, max_iter):
 def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):
 
     def cond(ki, kj, ui, ni):
-        should_update = ~tf.equal(ni, 0)
+        should_update = ni > 0
         if mask is not None:
             should_update &= mask
         return tf.reduce_any(should_update)
 
     def body(ki, kj, ui, ni):
-        uj = ui + tk.sign(tf.cast(ni, x.dtype))
-        nj = ni - tk.sign(ni)
-        kp = tk.log_add_exp(ki, kj + tk.log(2. * uj / x))
-        km = tk.log_sub_exp(kj, ki + tk.log(2. * ui / x))
-        kj = tf.where(tf.equal(ni, 0), ki, tf.where(ni > 0, kj, km))
-        kk = tf.where(tf.equal(ni, 0), kj, tf.where(ni > 0, kp, ki))
-        return kj, kk, uj, nj
+        uj = ui + 1.
+        nj = ni - 1
+        kk = tk.log_add_exp(ki, kj + tk.log(2. * uj / x))
+        k0 = tf.where(ni > 0, kj, ki)
+        k1 = tf.where(ni > 0, kk, kj)
+        return k0, k1, uj, nj
 
     init = log_ku, log_kup1, u, n
     return tf.while_loop(cond, body, init)[:2]
@@ -90,7 +87,7 @@ def wrap_log_k(native_log_k):
 
         def _log_K_grad(u):
             logkv = _log_K_custom_gradient(v, x)
-            logkvm1 = _log_K_custom_gradient(v - 1, x)
+            logkvm1 = _log_K_custom_gradient(v - 1., x)
             dlogkvdx = - v / x - tk.exp(logkvm1 - logkv)
             return None, u * dlogkvdx
 
