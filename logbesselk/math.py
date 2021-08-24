@@ -2,6 +2,15 @@ import tensorflow as tf
 import numpy as np
 
 
+pi = np.pi
+inf = np.inf
+nan = np.nan
+
+
+is_nan = tf.math.is_nan
+is_finite = tf.math.is_finite
+
+
 minimum = tf.math.minimum
 maximum = tf.math.maximum
 
@@ -58,11 +67,11 @@ def log_cosh(x):
 
 def sinc(x):
     pix = np.pi * x
-    return tf.where(tf.equal(x, 0.), 1., sin(pix) / pix)
+    return tf.where(tf.equal(x, 0.), tf.cast(1., x.dtype), sin(pix) / pix)
 
 
 def sinhc(x):
-    return tf.where(tf.equal(x, 0.), 1., sinh(x) / x)
+    return tf.where(tf.equal(x, 0.), tf.cast(1., x.dtype), sinh(x) / x)
 
 
 def log_add_exp(x, y, sign=None):

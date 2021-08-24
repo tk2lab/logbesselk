@@ -1,24 +1,25 @@
 import tensorflow as tf
-import numpy as np
 
 from . import math as tk
+from .utils import wrap_log_k
 from .utils import log_bessel_recurrence
 
 
-def _log_K(v, x):
+@wrap_log_k
+def log_bessel_k(v, x):
+    n = tk.round(v)
+    u = v - n
+    log_ku, log_kup1 = _log_bessel_ku(u, x)
+    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
+
+
+def _log_bessel_ku(u, x, mask=None):
     """
     N.M. Temme.
     On the numerical evaluation of the modified Bessel function
     of the third kind.
     Journal of Coumputational Physics, 19, 324-337 (1975).
     """
-    n = tk.round(v)
-    u = v - n
-    log_ku, log_kup1 = _log_ku_temme(u, x)
-    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
-
-
-def _log_ku_temme(u, x, mask=None):
 
     def calc_gamma(u):
         factor = [
@@ -41,7 +42,10 @@ def _log_ku_temme(u, x, mask=None):
         return coef
 
     def cond(ki, li, i, ci, pi, qi, fi):
-        return tf.reduce_any(mask & (tk.abs(ci * fi) > tol * tk.abs(ki)))
+        nonzero_update = tk.abs(ci * fi) > tol * tk.abs(ki)
+        if mask is not None:
+            nonzero_update &= mask
+        return tf.reduce_any(nonzero_update)
 
     def body(ki, li, i, ci, pi, qi, fi):
         j = i + 1.
@@ -53,19 +57,20 @@ def _log_ku_temme(u, x, mask=None):
         lj = li + cj * (pj - j * fj)
         return kj, lj, j, cj, pj, qj, fj
 
-    dtype = (u * x).dtype
-    shape = tf.shape(u * x)
+    max_iter = 100
 
-    tol = tk.epsilon(dtype)
-    if mask is None:
-        mask = tf.ones(shape, tf.bool)
+    x = tf.convert_to_tensor(x)
+    u = tf.convert_to_tensor(u, x.dtype)
+    if mask is not None:
+        mask = tf.convert_to_tensor(mask, tf.bool)
 
+    tol = tk.epsilon(x.dtype)
     gp, gm = calc_gamma(u)
     lxh = tk.log(0.5 * x)
     mu = u * lxh
 
-    i = tf.cast(0., dtype)
-    c0 = tf.ones(shape, dtype)
+    i = tf.cast(0., x.dtype)
+    c0 = tf.ones_like(u * x)
     p0 = 0.5 * tk.exp(-mu) / (gp - u * gm)
     q0 = 0.5 * tk.exp( mu) / (gp + u * gm)
     f0 = (gm * tk.cosh(mu) - gp * lxh * tk.sinhc(mu)) / tk.sinc(u)
@@ -73,5 +78,6 @@ def _log_ku_temme(u, x, mask=None):
     l0 = c0 * (p0 - i * f0)
     init = k0, l0, i, c0, p0, q0, f0
 
-    ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=1000)
-    return tk.log(ku), tk.log(kn) - lxh
+    ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=max_iter)
+    log_ku, log_kup1 = tk.log(ku), tk.log(kn) - lxh
+    return log_ku, log_kup1
