@@ -9,7 +9,6 @@ from logbesselk.asymptotic import _log_bessel_k as log_K_A
 from logbesselk.integral import _log_bessel_k as _log_K_I
 from logbesselk.integral import log_bessel_k as log_K_I
 from logbesselk.sca import log_bessel_k as log_K_SCA
-from logbesselk.utils import get_deriv_func
 from .tfp import log_bessel_k as log_K_tfp
 
 
@@ -43,7 +42,7 @@ if __name__ == '__main__':
 
     funcs = dict(
         I=log_K_I,
-        A=log_K_A
+        A=log_K_A,
         S=log_K_S,
         C=log_K_C,
         SCA=log_K_SCA,
@@ -52,11 +51,11 @@ if __name__ == '__main__':
         #A10=lambda v, x: log_K_A(v, x, max_iter=10),
     )
     dv_funcs = dict(
-        I=lambda v, x: _log_K_I(v, x, n=1),
+        I=lambda v, x: log_K_I(v, x, n=1),
         #I100=lambda v, x: _log_K_I(v, x, n=1, max_iter=100),
     )
     dx_funcs = dict(
-        I=lambda v, x: _log_K_I(v, x, m=1),
+        I=lambda v, x: log_K_I(v, x, m=1),
         SCA=lambda v, x: tk.log_add_exp(log_K_SCA(v - 1, x), tk.log(v / x) + log_K_SCA(v, x)),
         tfp=lambda v, x: tk.log_add_exp(log_K_tfp(v - 1, x), tk.log(v / x) + log_K_tfp(v, x)),
         #I100=lambda v, x: _log_K_I(v, x, m=1, max_iter=100),
