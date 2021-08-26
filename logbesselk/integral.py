@@ -4,7 +4,7 @@ from . import math as tk
 from .utils import get_deriv_func, extend, find_zero
 
 
-def log_bessel_k(v, x, name=None):
+def log_bessel_k(v, x, n=0, m=0, name=None):
 
     @tf.custom_gradient
     def _custom_gradient(v, x, n, m):
@@ -20,7 +20,7 @@ def log_bessel_k(v, x, name=None):
     with tf.name_scope(name or 'bessel_K_tk2'):
         x = tf.convert_to_tensor(x)
         v = tf.convert_to_tensor(v, x.dtype)
-        return _custom_gradient(v, x, 0, 0)
+        return _custom_gradient(v, x, n, m)
 
 
 def _log_bessel_k(v, x, n=0, m=0,
