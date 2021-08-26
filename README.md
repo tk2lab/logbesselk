@@ -7,7 +7,7 @@ Provide function to calculate the modified Bessel function of the second kind.
 
 ```
 import tensorflow as tf
-from logbesselk.integrate import log_bessel_k
+from logbesselk.integral import log_bessel_k
 
 
 n = 1000
