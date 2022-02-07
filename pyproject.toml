@@ -1,11 +1,12 @@
 [tool.poetry]
 name = "logbesselk"
-version = "0.8.4"
+version = "0.8.5"
 description = ""
 authors = ["TAKEKAWA Takashi <takekawa@tk2lab.org>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+numpy = "^1.21"
 tensorflow = "^2.6.1"
 
 [tool.poetry.dev-dependencies]
