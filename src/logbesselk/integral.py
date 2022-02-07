@@ -8,7 +8,7 @@ def log_bessel_k(v, x, n=0, m=0, name=None):
 
     @tf.custom_gradient
     def _custom_gradient(v, x, n, m):
-        return _log_bessel_k(v, x, n, m), lambda u: _grad(n, m, u)
+        return _log_bessel_k(v, x, n, m), lambda u: _K_grad(n, m, u)
 
     def _K_grad(n, m, u):
         logkv = _custom_gradient(v, x, n, m)
@@ -28,7 +28,7 @@ def _log_bessel_k(v, x, n=0, m=0,
 
     def func(t):
         out = tf.where(
-            tf.equal(n % 2, 0), tk.log_cosh(v * t), tk.log_sinh(v * t),
+            tf.equal(n % 2, 0), tk.log_cosh(v * t), tk.log_sinh(tk.abs(v) * t),
         )
         out -= x * tk.cosh(t)
         out += tf.where(n > 0, nf * tk.log(t), tf.cast(0., x.dtype))
@@ -82,4 +82,5 @@ def _log_bessel_k(v, x, n=0, m=0,
     t = tf.linspace(t0, t1, 2 * bins + 1, axis=0)[1:-1:2]
     h = (t1 - t0) / bins
     sum_eft = tk.sum(tk.exp(func(t) - func(tp)), axis=0)
-    return tf.where(mask, func(tp) + tk.log(h * sum_eft), out)
+    out = tf.where(mask, func(tp) + tk.log(h * sum_eft), out)
+    return tf.where(tf.equal(n % 2, 0) | (v >= 0), out, -out)
