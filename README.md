@@ -14,7 +14,7 @@ of the second kind and its derivatives, arXiv:2018.11560, 2021.
 
 ### Require
 - python >= 3.8
-- tensorflwo >= 2.5
+- tensorflow >= 2.5
 
 
 ## Installation
