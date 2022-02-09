@@ -30,8 +30,8 @@ def _log_bessel_k(v, x, n=0, m=0,
             tf.equal(n % 2, 0), tk.log_cosh(v * t), tk.log_sinh(v * t),
         )
         out -= x * tk.cosh(t)
-        out += tf.where(n > 0, nf * tk.log(t), tf.cast(0., x.dtype))
-        out += tf.where(m > 0, mf * tk.log_cosh(t), tf.cast(0., x.dtype))
+        out += tf.where(n > 0, nf * tk.log(t), tf.cast(0, x.dtype))
+        out += tf.where(m > 0, mf * tk.log_cosh(t), tf.cast(0, x.dtype))
         return out
 
     def func_mth(t):
@@ -44,7 +44,7 @@ def _log_bessel_k(v, x, n=0, m=0,
         mask = tf.ones_like(v * x, tf.bool)
     else:
         mask = tf.convert_to_tensor(mask, tf.bool)
-    mask &= (x > 0.) & tf.where(n > 0, ~tf.equal(v, 0.), tf.cast(1, tf.bool))
+    mask &= (x > 0) & tf.where(n > 0, ~tf.equal(v, 0), tf.cast(1, tf.bool))
 
     eps = tk.epsilon(x.dtype)
     zero = tf.zeros_like(v * x)
@@ -55,7 +55,7 @@ def _log_bessel_k(v, x, n=0, m=0,
     mf = tf.cast(m, x.dtype)
 
     out = tf.cast(tk.nan, x.dtype) # x < 0.
-    out = tf.where(tf.equal(x, 0.), tf.cast(tk.inf, x.dtype), out)
+    out = tf.where(tf.equal(x, 0), tf.cast(tk.inf, x.dtype), out)
 
     positive_peak = ~tf.equal(n, 0) | (tf.square(v) + mf > x)
     if mask is not None:
@@ -65,14 +65,14 @@ def _log_bessel_k(v, x, n=0, m=0,
     tp = find_zero(deriv, te, ts, tol, max_iter)
     th = func(tp) + tk.log(eps)
 
-    tpm = tk.maximum(tp - bins * eps, 0.)
-    zero_exists = func_mth(zero) < 0.
+    tpm = tk.maximum(tp - bins * eps, 0)
+    zero_exists = func_mth(zero) < 0
     if mask is not None:
         zero_exists &= mask
     t0 = find_zero(func_mth, zero, tpm, tol, max_iter)
 
-    tpp = tk.maximum(tp + bins * eps, tp * (1. + bins * eps))
-    zero_exists = func_mth(tpp) > 0.
+    tpp = tk.maximum(tp + bins * eps, tp * (1 + bins * eps))
+    zero_exists = func_mth(tpp) > 0
     if mask is not None:
         zero_exists &= mask
     dt = tf.where(zero_exists, dt0, zero)

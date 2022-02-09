@@ -1,3 +1,5 @@
+import math
+
 import tensorflow as tf
 import numpy as np
 
@@ -56,7 +58,7 @@ def gamma(x):
 def log_sinh(x):
     def grad(upstream):
         return upstream / tanh(x)
-    return tf.where(x < 20., log(sinh(x)), x - np.log(2.)), grad
+    return tf.where(x < 20, log(sinh(x)), x - math.log(2)), grad
 
 
 @tf.custom_gradient
@@ -67,18 +69,18 @@ def log_cosh(x):
 
 
 def sinc(x):
-    pix = np.pi * x
-    return tf.where(tf.equal(x, 0.), tf.cast(1., x.dtype), sin(pix) / pix)
+    pix = math.pi * x
+    return tf.where(tf.equal(x, 0), tf.cast(1, x.dtype), sin(pix) / pix)
 
 
 def sinhc(x):
-    return tf.where(tf.equal(x, 0.), tf.cast(1., x.dtype), sinh(x) / x)
+    return tf.where(tf.equal(x, 0), tf.cast(1, x.dtype), sinh(x) / x)
 
 
 def log_add_exp(x, y, sign=None):
     larger = maximum(x, y)
     if sign is None:
-        sign = 1.
+        sign = 1
     return larger + log(exp(x - larger) + sign * exp(y - larger))
 
 
