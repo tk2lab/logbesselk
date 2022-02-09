@@ -14,7 +14,6 @@ def log_bessel_k(v, x, n=0, m=0, name=None):
         logkv = _custom_gradient(v, x, n, m)
         dlogkvdv = tk.exp(_custom_gradient(v, x, n + 1, m) - logkv)
         dlogkvdx = tk.exp(_custom_gradient(v, x, n, m + 1) - logkv)
-        dlogkvdx = tf.where(tf.equal(m % 2, 0), -dlogkvdx, dlogkvdx)
         return u * dlogkvdv, u * dlogkvdx, None, None
 
     with tf.name_scope(name or 'bessel_K_tk2'):
@@ -28,7 +27,7 @@ def _log_bessel_k(v, x, n=0, m=0,
 
     def func(t):
         out = tf.where(
-            tf.equal(n % 2, 0), tk.log_cosh(v * t), tk.log_sinh(tk.abs(v) * t),
+            tf.equal(n % 2, 0), tk.log_cosh(v * t), tk.log_sinh(v * t),
         )
         out -= x * tk.cosh(t)
         out += tf.where(n > 0, nf * tk.log(t), tf.cast(0., x.dtype))
@@ -38,8 +37,9 @@ def _log_bessel_k(v, x, n=0, m=0,
     def func_mth(t):
         return func(t) - th
 
+    nega_v = v < 0
     x = tf.convert_to_tensor(x)
-    v = tf.convert_to_tensor(v, x.dtype)
+    v = tk.abs(tf.convert_to_tensor(v, x.dtype))
     if mask is None:
         mask = tf.ones_like(v * x, tf.bool)
     else:
@@ -82,5 +82,7 @@ def _log_bessel_k(v, x, n=0, m=0,
     t = tf.linspace(t0, t1, 2 * bins + 1, axis=0)[1:-1:2]
     h = (t1 - t0) / bins
     sum_eft = tk.sum(tk.exp(func(t) - func(tp)), axis=0)
-    out = tf.where(mask, func(tp) + tk.log(h * sum_eft), out)
-    return tf.where(tf.equal(n % 2, 0) | (v >= 0), out, -out)
+    res = func(tp) + tk.log(h * sum_eft)
+    res = tf.where(tf.equal(n % 2, 0), -res, res)
+    res = tf.where(nega_v & tf.equal(n % 2, 1), -res, res)
+    return tf.where(mask, res, out)
