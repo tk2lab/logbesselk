@@ -9,12 +9,12 @@ TAKEKAWA Takashi <takekawa@tk2lab.org>
 
 # Reference
 Takashi Takekawa, Fast parallel calculation of modified Bessel function
-of the second kind and its derivatives, arXiv:2018.11560, 2021.
+of the second kind and its derivatives, SoftwareX, 17, 100923, 2022.
 
 
 ### Require
 - python >= 3.8
-- tensorflow >= 2.5
+- tensorflow >= 2.6.1
 
 
 ## Installation
