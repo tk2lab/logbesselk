@@ -9,8 +9,8 @@ def sign_bessel_k(v, x, m=0, n=0, name=None):
         dtype = tk.common_dtype([v, x])
         x = tf.convert_to_tensor(x, dtype)
         v = tf.convert_to_tensor(v, dtype)
-        m = tf.convert_to_tenwor(m, tf.int32)
-        n = tf.convert_to_tenwor(n, tf.int32)
+        m = tf.convert_to_tensor(m, tf.int32)
+        n = tf.convert_to_tensor(n, tf.int32)
         return _sign_bessel_k_naive(v, x, m, n)
 
 
