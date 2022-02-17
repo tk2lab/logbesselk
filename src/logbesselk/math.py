@@ -87,3 +87,23 @@ def log_add_exp(x, y, sign=None):
 def log_sub_exp(x, y):
     larger = maximum(x, y)
     return larger + log(exp(x - larger) - exp(y - larger))
+
+
+def as_numpy_dtype(dtype):
+    dtype = tf.as_dtype(dtype)
+    if hasattr(dtype, 'as_numpy_dtype'):
+        return dtype.as_numpy_dtype
+    return dtype
+
+
+def common_dtype(args, dtype_hint=None):
+    args = tf.nest.flatten(args)
+    dtype = None
+    for i, a in enumerate(args):
+        if hasattr(a, 'dtype') and a.dtype:
+            dt = as_numpy_dtype(a.dtype)
+            if dtype is None:
+                dtype = dt
+            elif dtype != dt:
+                dtype = np.ones([2], dtype) * np.ones([2], dt).dtype
+    return dtype_hint if dtype is None else tf.as_dtype(dtype)
