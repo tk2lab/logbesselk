@@ -13,7 +13,7 @@ of the second kind and its derivatives, SoftwareX, 17, 100923, 2022.
 
 
 ### Require
-- python >= 3.8
+- python >= 3.7.1
 - tensorflow >= 2.6.1
 
 

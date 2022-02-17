@@ -4,104 +4,146 @@ from . import math as tk
 from .utils import get_deriv_func, extend, find_zero
 
 
-def log_bessel_k(v, x, n=0, m=0, name=None):
-
-    @tf.custom_gradient
-    def _custom_gradient(v, x, n, m):
-        def _grad(u):
-            return (
-                u * dv_log_bessel_k(v, x, n, m),
-                u * dx_log_bessel_k(v, x, n, m),
-                None, None,
-            )
-        return _log_bessel_k(v, x, n, m), _grad
-
-    with tf.name_scope(name or 'bessel_K_tk2'):
-        x = tf.convert_to_tensor(x)
-        v = tf.convert_to_tensor(v, x.dtype)
-        return _custom_gradient(v, x, n, m)
+def sign_bessel_k(v, x, m=0, n=0):
+    with tf.name_scope(name or 'sign_bessel_k_tk2'):
+        dtype = tk.common_dtype([v, x])
+        x = tf.convert_to_tensor(x, dtype)
+        v = tf.convert_to_tensor(v, dtype)
+        m = tf.convert_to_tenwor(m, tf.int32)
+        n = tf.convert_to_tenwor(n, tf.int32)
+        return _sign_bessel_k_naive(v, x, m, n)
 
 
-def sign_bessel_k(v, x, n=0, m=0):
-    res = tf.cast(1, x.dtype)
-    res = tf.where(tf.equal(n % 2, 0), -res, res)
-    res = tf.where((v < 0) & tf.equal(n % 2, 1), -res, res)
-    return res
+def log_bessel_k(v, x, m=0, n=0, name=None):
+    with tf.name_scope(name or 'log_bessel_k_tk2'):
+        dtype = tk.common_dtype([v, x])
+        x = tf.convert_to_tensor(x, dtype)
+        v = tf.convert_to_tensor(v, dtype)
+        m = tf.convert_to_tensor(m, tf.int32)
+        n = tf.convert_to_tensor(n, tf.int32)
+        return _log_bessel_k_custom_gradient(v, x, m, n)
 
 
-def dv_log_bessel_k(v, x, n=0, m=0):
-    sign = sign_bessel_k(v, x, n + 1, m)
-    logdkdv = _log_bessel_k(v, x, n + 1, m)
-    logk = _log_bessel_k(v, x, n, m)
-    return sign * tk.exp(logdkdv - logk)
+def slog_bessel_k(v, x, m=0, n=0, name=None):
+    with tf.name_scope(name or 'slog_bessel_k_tk2'):
+        dtype = tk.common_dtype([v, x])
+        x = tf.convert_to_tensor(x, dtype)
+        v = tf.convert_to_tensor(v, dtype)
+        m = tf.convert_to_tensor(m, tf.int32)
+        n = tf.convert_to_tensor(n, tf.int32)
+        sign = _sign_bessel_k_naive(v, x, m, n)
+        logk = _log_bessel_k_custom_gradient(v, x, m, n)
+        return sign, logk
 
 
-def dx_log_bessel_k(v, x, n=0, m=0):
-    sign = sign_bessel_k(v, x, n, m + 1)
-    logdkdx = _log_bessel_k(v, x, n, m + 1)
-    logk = _log_bessel_k(v, x, n, m)
-    return sign * tk.exp(logdkdx - logk)
+def bessel_ke(v, x, m=0, n=0, name=None):
+    with tf.name_scope(name or 'bessel_ke_tk2'):
+        dtype = tk.common_dtype([v, x])
+        x = tf.convert_to_tensor(x, dtype)
+        v = tf.convert_to_tensor(v, dtype)
+        m = tf.convert_to_tensor(m, tf.int32)
+        n = tf.convert_to_tensor(n, tf.int32)
+        sign = _sign_bessel_k(v, x, m, n)
+        logk = _log_bessel_k_custom_gradient(v, x, m, n)
+        return sign * tk.exp(logk + x)
 
 
-def _log_bessel_k(v, x, n=0, m=0,
-                  mask=None, dt0=1., tol=1., max_iter=10, bins=128):
+def bessel_k_ratio(v, x, d=1, m=0, n=0, name=None):
+    with tf.name_scope(name or 'bessel_k_ratio_tk2'):
+        dtype = tk.common_dtype([v, x])
+        x = tf.convert_to_tensor(x, dtype)
+        v = tf.convert_to_tensor(v, dtype)
+        d = tf.convert_to_tensor(d, dtype)
+        m = tf.convert_to_tensor(m, tf.int32)
+        n = tf.convert_to_tensor(n, tf.int32)
+        signd = sign_bessel_k(v + d, x, m, n)
+        sign = sign_bessel_k(v, x, m, n)
+        logkd = _log_bessel_k_custom_gradient(v + d, x, m, n)
+        logk = _log_bessel_k_custom_gradient(v, x, m, n)
+        return signd * sign * tf.exp(logkd - logk)
+
+
+@tf.custom_gradient
+def _log_bessel_k_custom_gradient(v, x, m, n):
+    def _grad(u):
+        sign = _sign_bessel_k_naive(v, x, m, n)
+        sign_dv = _sign_bessel_k_naive(v, x, m + 1, n)
+        sign_dx = _sign_bessel_k_naive(v, x, m, n + 1)
+        logk_dv = _log_bessel_k_custom_gradient(v, x, m + 1, n)
+        logk_dx = _log_bessel_k_custom_gradient(v, x, m, n + 1)
+        return (
+            u * sign_dv * sign * tk.exp(logk_dv - logk),
+            u * sign_dx * sign * tk.exp(logk_dx - logk),
+            None, None,
+        )
+    logk = _log_bessel_k_naive(v, x, m, n)
+    return logk, _grad
+
+
+def _sign_bessel_k_naive(v, x, m, n):
+    dtype = tk.common_dtype([v, x])
+    convv = tf.equal(n % 2, 1) & (v < 0)
+    convx = tf.equal(n % 2, 1)
+    return tf.where(covv ^ covx, tf.cast(-1, dtype), tf.cast(1, dtype))
+
+
+def _log_bessel_k_naive(
+    v, x, m, n, mask=None, dt0=1., tol=1., max_iter=10, bins=128):
 
     def func(t):
         out = tf.where(
-            tf.equal(n % 2, 0), tk.log_cosh(v * t), tk.log_sinh(v * t),
+            tf.equal(m % 2, 0), tk.log_cosh(v * t), tk.log_sinh(v * t),
         )
         out -= x * tk.cosh(t)
-        out += tf.where(n > 0, nf * tk.log(t), tf.cast(0, x.dtype))
-        out += tf.where(m > 0, mf * tk.log_cosh(t), tf.cast(0, x.dtype))
+        out += tf.where(m > 0, mf * tk.log(t), tf.cast(0, dtype))
+        out += tf.where(n > 0, nf * tk.log_cosh(t), tf.cast(0, dtype))
         return out
 
     def func_mth(t):
         return func(t) - th
 
-    nega_v = v < 0
-    x = tf.convert_to_tensor(x)
-    v = tk.abs(tf.convert_to_tensor(v, x.dtype))
-    if mask is None:
-        mask = tf.ones_like(v * x, tf.bool)
-    else:
-        mask = tf.convert_to_tensor(mask, tf.bool)
-    mask &= (x > 0) & tf.where(n > 0, ~tf.equal(v, 0), tf.cast(1, tf.bool))
+    dtype = tk.common_dtype([v, x])
+    shape = tf.shape(v * x)
 
-    eps = tk.epsilon(x.dtype)
-    zero = tf.zeros_like(v * x)
-    dt0 = dt0 * tf.ones_like(v * x)
+    v = tk.abs(v)
+    mf = tf.cast(m, dtype)
+    nf = tf.cast(n, dtype)
+
+    if mask is None:
+        mask = tf.ones(shape, tf.bool)
+    condzero = tf.equal(m % 2, 1) & tf.equal(v, 0)
+    condinf = tf.equal(x, 0)
+    condnan = x < 0
+    mask &= ~condzero & ~condinf & ~condnan
+
+    zero_peak = tf.equal(m, 0) & (tf.square(v) + mf < x)
+    zero_inf = m > 0
+
+    eps = tk.epsilon(dtype)
+    scale = tf.cast(dt0, dtype)
     deriv = get_deriv_func(func)
 
-    nf = tf.cast(n, x.dtype)
-    mf = tf.cast(m, x.dtype)
-
-    out = tf.cast(tk.nan, x.dtype) # x < 0.
-    out = tf.where(tf.equal(x, 0), tf.cast(tk.inf, x.dtype), out)
-
-    positive_peak = ~tf.equal(n, 0) | (tf.square(v) + mf > x)
-    if mask is not None:
-        positive_peak &= mask
-    dt = tf.where(positive_peak, dt0, zero)
-    ts, te = extend(deriv, zero, dt)
+    dt = tf.where(~zero_peak & mask, scale, tf.cast(0, dtype))
+    ts, te = extend(deriv, tf.zeros(shape, dtype), dt)
     tp = find_zero(deriv, te, ts, tol, max_iter)
-    th = func(tp) + tk.log(eps)
+    fp = func(tp)
 
-    tpm = tk.maximum(tp - bins * eps, 0)
-    zero_exists = func_mth(zero) < 0
-    if mask is not None:
-        zero_exists &= mask
-    t0 = find_zero(func_mth, zero, tpm, tol, max_iter)
+    th = fp + tk.log(eps)
+    tpm = tk.minimum(tp - bins * eps, tf.cast(0, dtype))
+    t0 = find_zero(func_mth, tf.zeros(shape, dtype), tpm, tol, max_iter)
 
     tpp = tk.maximum(tp + bins * eps, tp * (1 + bins * eps))
-    zero_exists = func_mth(tpp) > 0
-    if mask is not None:
-        zero_exists &= mask
-    dt = tf.where(zero_exists, dt0, zero)
+    zero_exists = (func_mth(tpp) > 0) & mask
+    dt = tf.where(zero_exists, dt0 * scale, tf.cast(0, dtype))
     ts, te = extend(func_mth, tpp, dt)
     t1 = find_zero(func_mth, te, ts, tol, max_iter)
 
     t = tf.linspace(t0, t1, 2 * bins + 1, axis=0)[1:-1:2]
     h = (t1 - t0) / bins
-    sum_eft = tk.sum(tk.exp(func(t) - func(tp)), axis=0)
-    res = func(tp) + tk.log(h * sum_eft)
-    return tf.where(mask, res, out)
+    sum_eft = h * tk.sum(tk.exp(func(t) - fp), axis=0)
+    out = fp + tk.log(sum_eft)
+
+    out = tf.where(condzero, tf.cast(-tk.inf, dtype), out)
+    out = tf.where(condinf, tf.cast(tk.inf, dtype), out)
+    out = tf.where(condnan, tf.cast(tk.nan, dtype), out)
+    return out
