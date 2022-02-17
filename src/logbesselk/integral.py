@@ -43,7 +43,7 @@ def bessel_ke(v, x, m=0, n=0, name=None):
         v = tf.convert_to_tensor(v, dtype)
         m = tf.convert_to_tensor(m, tf.int32)
         n = tf.convert_to_tensor(n, tf.int32)
-        sign = _sign_bessel_k(v, x, m, n)
+        sign = _sign_bessel_k_naive(v, x, m, n)
         logk = _log_bessel_k_custom_gradient(v, x, m, n)
         return sign * tk.exp(logk + x)
 
@@ -56,9 +56,9 @@ def bessel_k_ratio(v, x, d=1, m=0, n=0, name=None):
         d = tf.convert_to_tensor(d, dtype)
         m = tf.convert_to_tensor(m, tf.int32)
         n = tf.convert_to_tensor(n, tf.int32)
-        signd = sign_bessel_k(v + d, x, m, n)
-        sign = sign_bessel_k(v, x, m, n)
+        signd = sign_bessel_k_naive(v + d, x, m, n)
         logkd = _log_bessel_k_custom_gradient(v + d, x, m, n)
+        sign = sign_bessel_k_naive(v, x, m, n)
         logk = _log_bessel_k_custom_gradient(v, x, m, n)
         return signd * sign * tf.exp(logkd - logk)
 
@@ -68,8 +68,8 @@ def _log_bessel_k_custom_gradient(v, x, m, n):
     def _grad(u):
         sign = _sign_bessel_k_naive(v, x, m, n)
         sign_dv = _sign_bessel_k_naive(v, x, m + 1, n)
-        sign_dx = _sign_bessel_k_naive(v, x, m, n + 1)
         logk_dv = _log_bessel_k_custom_gradient(v, x, m + 1, n)
+        sign_dx = _sign_bessel_k_naive(v, x, m, n + 1)
         logk_dx = _log_bessel_k_custom_gradient(v, x, m, n + 1)
         return (
             u * sign_dv * sign * tk.exp(logk_dv - logk),
@@ -82,9 +82,9 @@ def _log_bessel_k_custom_gradient(v, x, m, n):
 
 def _sign_bessel_k_naive(v, x, m, n):
     dtype = tk.common_dtype([v, x])
-    convv = tf.equal(n % 2, 1) & (v < 0)
+    convv = tf.equal(m % 2, 1) & (v < 0)
     convx = tf.equal(n % 2, 1)
-    return tf.where(covv ^ covx, tf.cast(-1, dtype), tf.cast(1, dtype))
+    return tf.where(convv ^ convx, tf.cast(-1, dtype), tf.cast(1, dtype))
 
 
 def _log_bessel_k_naive(
