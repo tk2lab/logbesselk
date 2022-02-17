@@ -4,7 +4,7 @@ from . import math as tk
 from .utils import get_deriv_func, extend, find_zero
 
 
-def sign_bessel_k(v, x, m=0, n=0):
+def sign_bessel_k(v, x, m=0, n=0, name=None):
     with tf.name_scope(name or 'sign_bessel_k_tk2'):
         dtype = tk.common_dtype([v, x])
         x = tf.convert_to_tensor(x, dtype)
