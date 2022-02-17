@@ -56,9 +56,9 @@ def bessel_k_ratio(v, x, d=1, m=0, n=0, name=None):
         d = tf.convert_to_tensor(d, dtype)
         m = tf.convert_to_tensor(m, tf.int32)
         n = tf.convert_to_tensor(n, tf.int32)
-        signd = sign_bessel_k_naive(v + d, x, m, n)
+        signd = _sign_bessel_k_naive(v + d, x, m, n)
         logkd = _log_bessel_k_custom_gradient(v + d, x, m, n)
-        sign = sign_bessel_k_naive(v, x, m, n)
+        sign = _sign_bessel_k_naive(v, x, m, n)
         logk = _log_bessel_k_custom_gradient(v, x, m, n)
         return signd * sign * tf.exp(logkd - logk)
 
