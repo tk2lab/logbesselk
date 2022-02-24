@@ -57,6 +57,11 @@ def find_zero(func, x0, x1, tol, max_iter):
     return tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
 
 
+def find_zero_with_extend(func, x0, dx, tol, max_iter):
+    ts, te = extend(func, x0, dx)
+    return find_zero(func, te, ts, tol, max_iter)
+
+
 def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):
 
     def cond(ki, kj, ui, ni):
