@@ -12,15 +12,46 @@ def get_deriv_func(func, i=0):
     return deriv
 
 
-def extend(func, x0, dx):
+def find_peak(func, x0, dx, tol, max_iter):
+    deriv = get_deriv_func(func)
+    dtype = tk.common_dtype([x0, dx], tf.float32)
+    x0 = tf.convert_to_tensor(x0, dtype)
+    dx = tf.convert_to_tensor(dx, dtype)
+    tol = tf.convert_to_tensor(tol, dtype)
+    max_iter = tf.convert_to_tensor(max_iter, tf.int32)
+    ts, te = _extend(deriv, x0, dx)
+    return _find_zero(deriv, te, ts, tol, max_iter)[0]
+
+
+def find_zero(func, x0, x1, tol, max_iter):
+    dtype = tk.common_dtype([x0, x1], tf.float32)
+    x0 = tf.convert_to_tensor(x0, dtype)
+    x1 = tf.convert_to_tensor(x1, dtype)
+    tol = tf.convert_to_tensor(tol, dtype)
+    max_iter = tf.convert_to_tensor(max_iter, tf.int32)
+    return _find_zero(func, x0, x1, tol, max_iter)[0]
+
+
+def find_zero_with_extend(func, x0, dx, tol, max_iter):
+    dtype = tk.common_dtype([x0, dx], tf.float32)
+    x0 = tf.convert_to_tensor(x0, dtype)
+    dx = tf.convert_to_tensor(dx, dtype)
+    tol = tf.convert_to_tensor(tol, dtype)
+    max_iter = tf.convert_to_tensor(max_iter, tf.int32)
+    ts, te = _extend(func, x0, dx)
+    return _find_zero(func, te, ts, tol, max_iter)[0]
+
+
+def _extend(func, x0, dx):
 
     def cond(x, d, f1):
-        return tf.reduce_any(~tf.equal(dx, 0.) & (f1 > 0))
+        print(x.numpy(), d.numpy(), f1.numpy())
+        return tf.reduce_any(~tf.equal(dx, 0) & (f1 > 0))
 
     def body(x, d, f1):
         f1 = func(x + d)
-        x = tf.where(f1 > 0., x + d, x)
-        d = tf.where(f1 > 0., 2. * d, d)
+        x = tf.where(f1 > 0, x + d, x)
+        d = tf.where(f1 > 0, 2 * d, d)
         return x, d, f1
 
     init = x0, dx, tf.ones_like(x0)
@@ -28,10 +59,11 @@ def extend(func, x0, dx):
     return x, x + d
 
 
-def find_zero(func, x0, x1, tol, max_iter):
+def _find_zero(func, x0, x1, tol, max_iter):
 
     def cond(x0, x1, f0, f1):
-        return tf.reduce_any(~tf.equal(x0, x1) & (tk.abs(f0) > 1.))
+        print(x0.numpy(), x1.numpy(), f0.numpy(), f1.numpy())
+        return tf.reduce_any(~tf.equal(x0, x1) & (tk.abs(f0) > tol))
 
     def body(x0, x1, f0, f1):
         x_shrink = x0 + 0.5 * (x1 - x0)
@@ -51,10 +83,8 @@ def find_zero(func, x0, x1, tol, max_iter):
         return x0_new, x1_new, f0_new, f1_new
 
     deriv = get_deriv_func(func)
-    f0 = func(x0)
-    f1 = func(x1)
-    init = x0, x1, f0, f1
-    return tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
+    init = x0, x1, func(x0), func(x1)
+    return tf.while_loop(cond, body, init, maximum_iterations=max_iter)
 
 
 def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):

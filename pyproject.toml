@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "logbesselk"
-version = "2.1.1"
+version = "2.2.0"
 description = "Provide function to calculate the modified Bessel function of the second kind"
 authors = ["TAKEKAWA Takashi <takekawa@tk2lab.org>"]
 
@@ -9,7 +9,7 @@ python = ">=3.7.1,<3.11"
 tensorflow = "^2.6.1"
 
 [tool.poetry.dev-dependencies]
-tensorflow-probability = "^0.13"
+tensorflow-probability = "^0.14"
 pandas = "^1.3"
 pytest = "^7.0"
 matplotlib = "^3.4"
