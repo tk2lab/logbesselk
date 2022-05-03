@@ -1,4 +1,5 @@
 import pytest
+import tensorflow as tf
 import pandas as pd
 import numpy as np
 
@@ -7,42 +8,26 @@ from logbesselk.integral import bessel_ke
 from logbesselk.integral import bessel_k_ratio
 
 
-def test_logk(datadir):
-    df = pd.read_csv('./data/logk_mathematica.csv')
+funcs = dict(
+    logk=lambda v, x: log_bessel_k(v, x),
+    log_dkdv=lambda v, x: log_bessel_k(v, x, 1, 0),
+    log_dkdx=lambda v, x: log_bessel_k(v, x, 0, 1),
+    ke=lambda v, x: bessel_ke(v, x),
+    kratio=lambda v, x: bessel_k_ratio(v, x),
+)
+
+
+@pytest.mark.parametrize(
+    'func, wrap, data', [
+        (f, w, d)
+        for d, f in funcs.items()
+        for w in [False, True]
+    ])
+def test_logk(func, wrap, data):
+    if wrap:
+        func = tf.function(func)
+    df = pd.read_csv(f'./data/{data}_mathematica.csv')
     v = df['v']
     x = df['x']
     val = df['true']
-    assert np.all(np.isclose(log_bessel_k(v, x).numpy(), val))
-
-
-def test_logdkdv(datadir):
-    df = pd.read_csv('./data/log_dkdv_mathematica.csv')
-    v = df['v']
-    x = df['x']
-    val = df['true']
-    assert np.all(np.isclose(log_bessel_k(v, x, 1, 0).numpy(), val))
-
-
-def test_logdkdx(datadir):
-    df = pd.read_csv('./data/log_dkdx_mathematica.csv')
-    v = df['v']
-    x = df['x']
-    val = df['true']
-    assert np.all(np.isclose(log_bessel_k(v, x, 0, 1).numpy(), val))
-
-
-def test_ke(datadir):
-    df = pd.read_csv('./data/ke_mathematica.csv')
-    v = df['v']
-    x = df['x']
-    val = df['true']
-    assert np.all(np.isclose(bessel_ke(v, x).numpy(), val))
-
-
-def test_ke(datadir):
-    df = pd.read_csv('./data/kratio_mathematica.csv')
-    v = df['v']
-    x = df['x']
-    val = np.array(df['true'])
-    calc = bessel_k_ratio(v, x).numpy()
-    assert np.all(np.isclose(calc, val))
+    assert np.all(np.isclose(func(v, x).numpy(), val))
