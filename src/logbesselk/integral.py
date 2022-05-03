@@ -53,20 +53,22 @@ def bessel_k_ratio(v, x, d=1, m=0, n=0, name=None):
         return signd * sign * tf.exp(logkd - logk)
 
 
-@tf.custom_gradient
 def _log_bessel_k_custom_gradient(v, x, m, n):
-    def _grad(u):
-        sign = _sign_bessel_k_naive(v, x, m, n)
-        sign_dv = _sign_bessel_k_naive(v, x, m + 1, n)
-        logk_dv = _log_bessel_k_custom_gradient(v, x, m + 1, n)
-        sign_dx = _sign_bessel_k_naive(v, x, m, n + 1)
-        logk_dx = _log_bessel_k_custom_gradient(v, x, m, n + 1)
-        return (
-            u * sign_dv * sign * tk.exp(logk_dv - logk),
-            u * sign_dx * sign * tk.exp(logk_dx - logk),
-        )
-    logk = _log_bessel_k_naive(v, x, m, n)
-    return logk, _grad
+    @tf.custom_gradient
+    def logk_vx(v, x):
+        def _grad(u):
+            sign = _sign_bessel_k_naive(v, x, m, n)
+            sign_dv = _sign_bessel_k_naive(v, x, m + 1, n)
+            logk_dv = _log_bessel_k_custom_gradient(v, x, m + 1, n)
+            sign_dx = _sign_bessel_k_naive(v, x, m, n + 1)
+            logk_dx = _log_bessel_k_custom_gradient(v, x, m, n + 1)
+            return (
+                u * sign_dv * sign * tk.exp(logk_dv - logk),
+                u * sign_dx * sign * tk.exp(logk_dx - logk),
+            )
+        logk = _log_bessel_k_naive(v, x, m, n)
+        return logk, _grad
+    return logk_vx(v, x)
 
 
 def _sign_bessel_k_naive(v, x, m, n):
@@ -89,7 +91,7 @@ def _log_bessel_k_func(v, x, t, m, n):
     return out
 
 
-def _log_bessel_k_naive(v, x, m, n,
+def _log_bessel_k_naive(v, x, m=0, n=0,
                         mask=None, dt0=0.1, tol=1., max_iter=10, bins=128):
 
     def func(t):
