@@ -45,7 +45,6 @@ def find_zero_with_extend(func, x0, dx, tol, max_iter):
 def _extend(func, x0, dx):
 
     def cond(x, d, f1):
-        print(x.numpy(), d.numpy(), f1.numpy())
         return tf.reduce_any(~tf.equal(dx, 0) & (f1 > 0))
 
     def body(x, d, f1):
@@ -62,7 +61,6 @@ def _extend(func, x0, dx):
 def _find_zero(func, x0, x1, tol, max_iter):
 
     def cond(x0, x1, f0, f1):
-        print(x0.numpy(), x1.numpy(), f0.numpy(), f1.numpy())
         return tf.reduce_any(~tf.equal(x0, x1) & (tk.abs(f0) > tol))
 
     def body(x0, x1, f0, f1):
