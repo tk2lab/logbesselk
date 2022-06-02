@@ -2,7 +2,7 @@ name: Python package
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   deploy:
@@ -10,32 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
+      - name: Check out repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+            python-version: '3.x'
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1.0.0
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.0.0
+        with:
+            virtualenvs-create: true
+            virtualenvs-in-project: true
 
-    - name: Cache Poetry virtualenv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v2
-      with:
-        path: .venv
-        key: venv-${{ runner.os}}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install Decendencies
+        run: poetry install
 
-    - name: Install Decendencies
-      run: poetry install
-      if: steps.cached-poetroy-dependencies.outputs.cache-hit != 'true'
+      - name: Build package
+        run: poetry build
 
-    - name: Build and Publish
-      run: |
-        poetry build
-        poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}
+      - name: Publish package
+        run: poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}

@@ -12,33 +12,24 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ['3.7', '3.8', '3.9', '3.10']
 
     steps:
     - name: Check out repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1.0.0
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
+    - name: Install tox
+      run: pip install tox
 
-    - name: Cache Poetry virtualenv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v2
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+    - name: Run tox
+      if: ${{ matrix.python-version != '3.10' }}
+      run: tox -e py-{tf26,tf27,tf28,tf29}
 
-    - name: Install Decendencies
-      run: poetry install
-      if: steps.cached-poetry-dependences.outputs.cache-hit != 'true'
-
-    - name: Run pytest
-      run: poetry run pytest tests
+    - name: Run tox on 3.10
+      if: ${{ matrix.python-version == '3.10' }}
+      run: tox -e py-{tf28,tf29}
