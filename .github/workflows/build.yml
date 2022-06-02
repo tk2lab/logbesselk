@@ -27,4 +27,4 @@ jobs:
       run: pip install tox
 
     - name: Run tox
-      run: tox -e py
+      run: tox -e py-tf26,py-tf27,py-tf28,py-tf29
