@@ -27,4 +27,9 @@ jobs:
       run: pip install tox
 
     - name: Run tox
-      run: tox -e py-tf26,py-tf27,py-tf28,py-tf29
+      if: ${{ matrix.python-version != '3.10' }}
+      run: tox -e py-{tf26,tf27,tf28,tf29}
+
+    - name: Run tox on 3.10
+      if: ${{ matrix.python-version == '3.10' }}
+      run: tox -e py-{tf28,tf29}
