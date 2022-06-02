@@ -701,7 +701,7 @@ tensorflow-rocm = ["tensorflow-rocm (>=2.8.0,<2.9.0)"]
 
 [[package]]
 name = "tensorflow-probability"
-version = "0.14.1"
+version = "0.16.0"
 description = "Probabilistic modeling and statistical inference in TensorFlow"
 category = "dev"
 optional = false
@@ -815,7 +815,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.11"
-content-hash = "0c1c91587db9a7c11c2e0c76c1282bbd34d68546fd69be8f47a479f8292243f9"
+content-hash = "c919af37c094dcc3a14f9fc4890f0fba16c91cc1db8b7606d62a9dca936409b7"
 
 [metadata.files]
 absl-py = [
@@ -1392,7 +1392,7 @@ tensorflow-io-gcs-filesystem = [
     {file = "tensorflow_io_gcs_filesystem-0.24.0-cp39-cp39-win_amd64.whl", hash = "sha256:2862e0869453ce1f872a28d1362768ee078ec227ea587dd69164081dea6d7177"},
 ]
 tensorflow-probability = [
-    {file = "tensorflow_probability-0.14.1-py2.py3-none-any.whl", hash = "sha256:c25d80d492ef7cc1d48b201982f11c913a1eecb5e8cb5cd87202a313b56a6017"},
+    {file = "tensorflow_probability-0.16.0-py2.py3-none-any.whl", hash = "sha256:48bcaa772ebbfa535594df025b3d7a5f531753117fd78f01bf740667dace99f7"},
 ]
 termcolor = [
     {file = "termcolor-1.1.0.tar.gz", hash = "sha256:1d6d69ce66211143803fbc56652b41d73b4a400a2891d7bf7a1cdf4c02de613b"},
