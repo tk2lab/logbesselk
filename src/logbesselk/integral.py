@@ -1,11 +1,21 @@
 import tensorflow as tf
 
 from . import math as tk
-from .utils import find_peak, find_zero, find_zero_with_extend
+from .utils import find_peak
+from .utils import find_zero
+from .utils import find_zero_with_extend
+
+__all__ = [
+    "sign_bessel_k",
+    "log_bessel_k",
+    "slog_bessel_k",
+    "bessel_ke",
+    "bessel_k_ratio",
+]
 
 
 def sign_bessel_k(v, x, m=0, n=0, name=None):
-    with tf.name_scope(name or 'sign_bessel_k_tk2'):
+    with tf.name_scope(name or "sign_bessel_k_tk2"):
         dtype = tk.common_dtype([v, x], tf.float32)
         x = tf.convert_to_tensor(x, dtype)
         v = tf.convert_to_tensor(v, dtype)
@@ -13,7 +23,7 @@ def sign_bessel_k(v, x, m=0, n=0, name=None):
 
 
 def log_bessel_k(v, x, m=0, n=0, name=None):
-    with tf.name_scope(name or 'log_bessel_k_tk2'):
+    with tf.name_scope(name or "log_bessel_k_tk2"):
         dtype = tk.common_dtype([v, x], tf.float32)
         x = tf.convert_to_tensor(x, dtype)
         v = tf.convert_to_tensor(v, dtype)
@@ -21,7 +31,7 @@ def log_bessel_k(v, x, m=0, n=0, name=None):
 
 
 def slog_bessel_k(v, x, m=0, n=0, name=None):
-    with tf.name_scope(name or 'slog_bessel_k_tk2'):
+    with tf.name_scope(name or "slog_bessel_k_tk2"):
         dtype = tk.common_dtype([v, x], tf.float32)
         x = tf.convert_to_tensor(x, dtype)
         v = tf.convert_to_tensor(v, dtype)
@@ -31,7 +41,7 @@ def slog_bessel_k(v, x, m=0, n=0, name=None):
 
 
 def bessel_ke(v, x, m=0, n=0, name=None):
-    with tf.name_scope(name or 'bessel_ke_tk2'):
+    with tf.name_scope(name or "bessel_ke_tk2"):
         dtype = tk.common_dtype([v, x], tf.float32)
         x = tf.convert_to_tensor(x, dtype)
         v = tf.convert_to_tensor(v, dtype)
@@ -41,7 +51,7 @@ def bessel_ke(v, x, m=0, n=0, name=None):
 
 
 def bessel_k_ratio(v, x, d=1, m=0, n=0, name=None):
-    with tf.name_scope(name or 'bessel_k_ratio_tk2'):
+    with tf.name_scope(name or "bessel_k_ratio_tk2"):
         dtype = tk.common_dtype([v, x], tf.float32)
         x = tf.convert_to_tensor(x, dtype)
         v = tf.convert_to_tensor(v, dtype)
@@ -66,8 +76,10 @@ def _log_bessel_k_custom_gradient(v, x, m, n):
                 u * sign_dv * sign * tk.exp(logk_dv - logk),
                 u * sign_dx * sign * tk.exp(logk_dx - logk),
             )
+
         logk = _log_bessel_k_naive(v, x, m, n)
         return logk, _grad
+
     return logk_vx(v, x)
 
 
@@ -91,9 +103,9 @@ def _log_bessel_k_func(v, x, t, m, n):
     return out
 
 
-def _log_bessel_k_naive(v, x, m=0, n=0,
-                        mask=None, dt0=0.1, tol=1., max_iter=10, bins=128):
-
+def _log_bessel_k_naive(
+    v, x, m=0, n=0, mask=None, dt0=0.1, tol=1.0, max_iter=10, bins=128
+):
     def func(t):
         return _log_bessel_k_func(v, x, t, m, n)
 

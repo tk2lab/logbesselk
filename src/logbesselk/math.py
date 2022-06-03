@@ -1,8 +1,7 @@
 import math
 
-import tensorflow as tf
 import numpy as np
-
+import tensorflow as tf
 
 pi = np.pi
 inf = np.inf
@@ -58,6 +57,7 @@ def gamma(x):
 def log_sinh(x):
     def grad(upstream):
         return upstream / tanh(x)
+
     return tf.where(x < 20, log(sinh(x)), x - math.log(2)), grad
 
 
@@ -65,6 +65,7 @@ def log_sinh(x):
 def log_cosh(x):
     def grad(upstream):
         return upstream * tanh(x)
+
     return x + log1p(expm1(-2 * x) / 2), grad
 
 
@@ -91,7 +92,7 @@ def log_sub_exp(x, y):
 
 def as_numpy_dtype(dtype):
     dtype = tf.as_dtype(dtype)
-    if hasattr(dtype, 'as_numpy_dtype'):
+    if hasattr(dtype, "as_numpy_dtype"):
         return dtype.as_numpy_dtype
     return dtype
 
@@ -100,7 +101,7 @@ def common_dtype(args, dtype_hint=None):
     args = tf.nest.flatten(args)
     dtype = None
     for i, a in enumerate(args):
-        if hasattr(a, 'dtype') and a.dtype:
+        if hasattr(a, "dtype") and a.dtype:
             dt = as_numpy_dtype(a.dtype)
             if dtype is None:
                 dtype = dt
