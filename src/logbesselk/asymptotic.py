@@ -1,8 +1,14 @@
-import tensorflow as tf
+import math
+
 import numpy as np
+import tensorflow as tf
 
 from . import math as tk
 from .utils import wrap_log_k
+
+__all__ = [
+    "log_bessel_k",
+]
 
 
 @wrap_log_k
@@ -21,7 +27,6 @@ def _log_bessel_k(v, x, mask=None, max_iter=30, return_counter=False):
         return tf.reduce_any(update)
 
     def body(target, i, pi, update):
-
         def local_cond(ui, j):
             return j >= 0
 
@@ -36,12 +41,14 @@ def _log_bessel_k(v, x, mask=None, max_iter=30, return_counter=False):
         return target, i + 1, pi * p, update
 
     factor = np.zeros((max_iter, max_iter))
-    factor[0, 0] = 1.
+    factor[0, 0] = 1
     for i in range(max_iter - 1):
         for j in range(i + 1):
-            k = i + 2. * j
-            factor[i + 1, j + 0] -= factor[i, j] * (0.5 * k + 0.125 / (k + 1.))
-            factor[i + 1, j + 1] += factor[i, j] * (0.5 * k + 0.625 / (k + 3.))
+            k = i + 2 * j
+            a = (1 / 2) * k + (1 / 8) / (k + 1)
+            b = (1 / 2) * k + (5 / 8) / (k + 3)
+            factor[i + 1, j + 0] -= factor[i, j] * a
+            factor[i + 1, j + 1] += factor[i, j] * b
 
     x = tf.convert_to_tensor(x)
     v = tf.convert_to_tensor(v, x.dtype)
@@ -53,14 +60,18 @@ def _log_bessel_k(v, x, mask=None, max_iter=30, return_counter=False):
     p = tk.sqrt(tk.square(v) + tk.square(x))
     q = tk.square(v) / (tk.square(v) + tk.square(x))
 
-    log_const = 0.5 * tk.log(0.5 * tk.pi / p) + v * tk.log((v + p) / x) - p
+    log_const = (1 / 2) * math.log((1 / 2) * math.pi)
+    log_const += v * tk.log((v + p) / x) - (1 / 2) * tk.log(p) - p
     target = tf.zeros_like(v * x)
     i = tf.cast(0, tf.int32)
     pi = tf.ones_like(p)
     update = tf.ones_like(v * x, tf.bool)
     init = target, i, pi, update
     target, counter, *_ = tf.while_loop(
-        cond, body, init, maximum_iterations=max_iter,
+        cond,
+        body,
+        init,
+        maximum_iterations=max_iter,
     )
     results = log_const + tk.log(target)
 

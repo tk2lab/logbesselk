@@ -2,6 +2,15 @@ import tensorflow as tf
 
 from . import math as tk
 
+__all__ = [
+    "get_deriv_func",
+    "find_peak",
+    "find_zero",
+    "fond_zero_with_extend",
+    "log_bessel_recurrence",
+    "wrap_log_k",
+]
+
 
 def get_deriv_func(func, i=0):
     def deriv(*args):
@@ -9,6 +18,7 @@ def get_deriv_func(func, i=0):
             g.watch(args)
             f = func(*args)
         return g.gradient(f, args[i])
+
     return deriv
 
 
@@ -43,7 +53,6 @@ def find_zero_with_extend(func, x0, dx, tol, max_iter):
 
 
 def _extend(func, x0, dx):
-
     def cond(x, d, f1):
         return tf.reduce_any(~tf.equal(dx, 0) & (f1 > 0))
 
@@ -59,7 +68,6 @@ def _extend(func, x0, dx):
 
 
 def _find_zero(func, x0, x1, tol, max_iter):
-
     def cond(x0, x1, f0, f1):
         return tf.reduce_any(~tf.equal(x0, x1) & (tk.abs(f0) > tol))
 
@@ -67,7 +75,7 @@ def _find_zero(func, x0, x1, tol, max_iter):
         x_shrink = x0 + 0.5 * (x1 - x0)
         f_shrink = func(x_shrink)
 
-        dx = - f0 / deriv(x0) / (x1 - x0)
+        dx = -f0 / deriv(x0) / (x1 - x0)
         dx_in_range = (0.0 < dx) & (dx < 0.5)
         x_newton = tf.where(dx_in_range, x0 + dx * (x1 - x0), x0)
         f_newton = func(x_newton)
@@ -86,7 +94,6 @@ def _find_zero(func, x0, x1, tol, max_iter):
 
 
 def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):
-
     def cond(ki, kj, ui, ni):
         should_update = ni > 0
         if mask is not None:
@@ -94,9 +101,9 @@ def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):
         return tf.reduce_any(should_update)
 
     def body(ki, kj, ui, ni):
-        uj = ui + 1.
+        uj = ui + 1
         nj = ni - 1
-        kk = tk.log_add_exp(ki, kj + tk.log(2. * uj / x))
+        kk = tk.log_add_exp(ki, kj + tk.log(2 * uj / x))
         k0 = tf.where(ni > 0, kj, ki)
         k1 = tf.where(ni > 0, kk, kj)
         return k0, k1, uj, nj
@@ -106,20 +113,18 @@ def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):
 
 
 def wrap_log_k(native_log_k):
-
     def wraped_log_k(v, x, name=None):
-
         @tf.custom_gradient
         def _log_K_custom_gradient(v, x):
             return native_log_k(v, x), _log_K_grad
 
         def _log_K_grad(u):
             logkv = _log_K_custom_gradient(v, x)
-            logkvm1 = _log_K_custom_gradient(v - 1., x)
-            dlogkvdx = - v / x - tk.exp(logkvm1 - logkv)
+            logkvm1 = _log_K_custom_gradient(v - 1, x)
+            dlogkvdx = -v / x - tk.exp(logkvm1 - logkv)
             return None, u * dlogkvdx
 
-        with tf.name_scope(name or 'bessel_K'):
+        with tf.name_scope(name or "bessel_K"):
             x = tf.convert_to_tensor(x)
             v = tf.convert_to_tensor(v, x.dtype)
             return _log_K_custom_gradient(v, x)

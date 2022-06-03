@@ -1,8 +1,12 @@
 import tensorflow as tf
 
 from . import math as tk
-from .utils import wrap_log_k
 from .utils import log_bessel_recurrence
+from .utils import wrap_log_k
+
+__all__ = [
+    "log_bessel_k",
+]
 
 
 @wrap_log_k
@@ -24,22 +28,29 @@ def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
 
     def calc_gamma(u):
         factor = [
-            +1.8437405873009050, -1.1420226803711680,
-            -0.0768528408447867, +0.0065165112670737,
-            +0.0012719271366546, +0.0003087090173086,
-            -0.0000049717367042, -0.0000034706269649,
-            -0.0000000331261198, +0.0000000069437664,
-            +0.0000000002423096, +0.0000000000367795,
-            -0.0000000000001702, -0.0000000000001356,
+            +1.8437405873009050,
+            -1.1420226803711680,
+            -0.0768528408447867,
+            +0.0065165112670737,
+            +0.0012719271366546,
+            +0.0003087090173086,
+            -0.0000049717367042,
+            -0.0000034706269649,
+            -0.0000000331261198,
+            +0.0000000069437664,
+            +0.0000000002423096,
+            +0.0000000000367795,
+            -0.0000000000001702,
+            -0.0000000000001356,
             -0.00000000000000149,
         ]
-        w = 16. * tk.square(u) - 2.
+        w = 16 * tk.square(u) - 2
         coef = [None, None]
         for s in range(2):
-            prev, curr = 0., 0.
-            for fac in reversed(factor[s + 2::2]):
+            prev, curr = 0, 0
+            for fac in reversed(factor[s + 2 :: 2]):
                 prev, curr = curr, w * curr + fac - prev
-            coef[s] = 0.5 * (w * curr + factor[s]) - prev
+            coef[s] = (1 / 2) * (w * curr + factor[s]) - prev
         return coef
 
     def cond(ki, li, i, ci, pi, qi, fi):
@@ -49,8 +60,8 @@ def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
         return tf.reduce_any(nonzero_update)
 
     def body(ki, li, i, ci, pi, qi, fi):
-        j = i + 1.
-        cj = ci * tk.square(0.5 * x) / j
+        j = i + 1
+        cj = ci * tk.square(x / 2) / j
         pj = pi / (j - u)
         qj = qi / (j + u)
         fj = (j * fi + pi + qi) / (tk.square(j) - tk.square(u))
@@ -65,20 +76,23 @@ def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
 
     tol = tk.epsilon(x.dtype)
     gp, gm = calc_gamma(u)
-    lxh = tk.log(0.5 * x)
+    lxh = tk.log(x / 2)
     mu = u * lxh
 
-    i = tf.cast(0., x.dtype)
+    i = tf.cast(0, x.dtype)
     c0 = tf.ones_like(u * x)
-    p0 = 0.5 * tk.exp(-mu) / (gp - u * gm)
-    q0 = 0.5 * tk.exp( mu) / (gp + u * gm)
+    p0 = (1 / 2) * tk.exp(-mu) / (gp - u * gm)
+    q0 = (1 / 2) * tk.exp(mu) / (gp + u * gm)
     f0 = (gm * tk.cosh(mu) - gp * lxh * tk.sinhc(mu)) / tk.sinc(u)
     k0 = c0 * f0
     l0 = c0 * (p0 - i * f0)
     init = k0, l0, i, c0, p0, q0, f0
 
     ku, kn, counter, *_ = tf.while_loop(
-        cond, body, init, maximum_iterations=max_iter,
+        cond,
+        body,
+        init,
+        maximum_iterations=max_iter,
     )
     log_ku, log_kup1 = tk.log(ku), tk.log(kn) - lxh
 

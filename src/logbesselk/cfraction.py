@@ -1,8 +1,12 @@
 import tensorflow as tf
 
 from . import math as tk
-from .utils import wrap_log_k
 from .utils import log_bessel_recurrence
+from .utils import wrap_log_k
+
+__all__ = [
+    "log_bessel_k",
+]
 
 
 @wrap_log_k
@@ -29,12 +33,12 @@ def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
         return tf.reduce_any(nonzero_update)
 
     def body(si, ri, i, bi, ci, di, fp, fi, gi, hi):
-        j = i + 1.
-        aj = tf.square(j - 0.5) - tf.square(u)
-        bj = 2. * (x + j)
+        j = i + 1
+        aj = tf.square(j - (1 / 2)) - tf.square(u)
+        bj = 2 * (x + j)
 
-        cj = 1. / (bj - aj * ci)
-        dj = di * (bj * cj - 1.)
+        cj = 1 / (bj - aj * ci)
+        dj = di * (bj * cj - 1)
         rj = ri + dj
 
         fj = (bi * fi - fp) / aj
@@ -50,26 +54,29 @@ def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
 
     tol = tk.epsilon(x.dtype)
 
-    i = tf.cast(1., x.dtype)
-    a1 = 0.25 - tf.square(u)
-    b1 = 2. * x + 2.
+    i = tf.cast(1, x.dtype)
+    a1 = (1 / 4) - tf.square(u)
+    b1 = 2 * x + 2
 
-    c1 = 1. / b1
-    d1 = 1. / b1
+    c1 = 1 / b1
+    d1 = 1 / b1
     r1 = d1
 
     f0 = tf.zeros_like(u * x)
     f1 = tf.ones_like(u * x)
     g1 = a1
     h1 = f1 * g1
-    s1 = 1. + d1 * h1
+    s1 = 1 + d1 * h1
 
     init = s1, r1, i, b1, c1, d1, f0, f1, g1, h1
     sn, rn, counter, *_ = tf.while_loop(
-        cond, body, init, maximum_iterations=max_iter,
+        cond,
+        body,
+        init,
+        maximum_iterations=max_iter,
     )
-    log_ku = 0.5 * tk.log(0.5 * tk.pi / x) - x - tk.log(sn)
-    log_kup1 = log_ku + tk.log((0.5 + u + x - a1 * rn) / x)
+    log_ku = (1 / 2) * tk.log((1 / 2) * tk.pi / x) - x - tk.log(sn)
+    log_kup1 = log_ku + tk.log(((1 / 2) + u + x - a1 * rn) / x)
 
     if return_counter:
         return log_ku, log_kup1, counter

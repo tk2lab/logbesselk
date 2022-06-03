@@ -6,7 +6,7 @@ from tqdm import tqdm
 from logbesselk.series import log_bessel_k as log_K_S
 from logbesselk.cfraction import log_bessel_k as log_K_C
 from logbesselk.asymptotic import _log_bessel_k as log_K_A
-from logbesselk.integral import _log_bessel_k as log_K_I
+from logbesselk.integral import _log_bessel_k_naive as log_K_I
 from logbesselk.sca import log_bessel_k as log_K_SCA
 from .tfp import log_bessel_k as log_K_tfp
 
