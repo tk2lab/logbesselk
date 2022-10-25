@@ -144,16 +144,23 @@ def _log_bessel_k_naive(
     dt = tf.where(zero_exists & mask, scale, zero)
     t1 = find_zero_with_extend(func_mth, tpp, dt, tol, max_iter)
 
-    for b in range(bins):
+    def funcb(b):
         a = (2 * b + 1) / (2 * bins)
         t = (1 - a) * t0 + a * t1
-        ft = func(t)
-        if b == 0:
-            out = tf.ones(shape, dtype)
-            fmax = ft
-        else:
-            out = tf.where(fmax > ft, out + tf.exp(ft - fmax), out * tk.exp(fmax - ft) + 1)
-            fmax = tf.where(fmax > ft, fmax, ft)
+        return func(t)
+
+    def cond(b, fmax, out):
+        return b < bins
+
+    def loop(b, fmax, out):
+        b += 1
+        ft = funcb(b)
+        out = tf.where(fmax > ft, out + tf.exp(ft - fmax), out * tk.exp(fmax - ft) + 1)
+        fmax = tf.where(fmax > ft, fmax, ft)
+        return b, fmax, out
+
+    init = 0, funcb(0), tf.ones(shape, dtype)
+    b, fmax, out = tf.while_loop(cond, loop, init)
     h = (t1 - t0) / bins
     out = tk.log(h) + fmax + tk.log(out)
 
