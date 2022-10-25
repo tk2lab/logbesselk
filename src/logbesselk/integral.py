@@ -159,7 +159,7 @@ def _log_bessel_k_naive(
         fmax = tf.where(fmax > ft, fmax, ft)
         return b, fmax, out
 
-    init = 0, funcb(0), tf.ones(shape, dtype)
+    init = tf.cast(0, dtype), funcb(0), tf.ones(shape, dtype)
     b, fmax, out = tf.while_loop(cond, loop, init)
     h = (t1 - t0) / bins
     out = tk.log(h) + fmax + tk.log(out)

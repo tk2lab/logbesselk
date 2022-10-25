@@ -18,17 +18,18 @@ funcs = dict(
 
 
 @pytest.mark.parametrize(
-    'func, wrap, data', [
-        (f, w, d)
+    'func, wrap, data, dtype', [
+        (f, w, d, dt)
+        for dt in [np.float32, np.float64]
         for d, f in funcs.items()
         for w in [False, True]
     ])
-def test_logk(func, wrap, data):
+def test_logk(func, wrap, data, dtype):
     if wrap:
         func = tf.function(func)
     df = pd.read_csv(f'./data/{data}_mathematica.csv')
-    v = df['v']
-    x = df['x']
-    val = df['true']
+    v = df['v'].to_numpy().astype(dtype)
+    x = df['x'].to_numpy().astype(dtype)
+    val = df['true'].to_numpy().astype(dtype)
     out = func(v, x).numpy()
-    assert np.all(np.isclose(out, val))
+    assert np.allclose(out, val, rtol=5e-3, atol=0)
