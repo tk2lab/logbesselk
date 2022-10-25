@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "logbesselk"
-version = "2.3.0"
+version = "2.4.0"
 description = "Provide function to calculate the modified Bessel function of the second kind"
 license = "Apache-2.0"
 authors = ["TAKEKAWA Takashi <takekawa@tk2lab.org>"]
@@ -9,7 +9,7 @@ repository = "https://github.com/tk2lab/logbesselk"
 
 [tool.poetry.dependencies]
 python = ">=3.7,<3.11"
-tensorflow = "^2.6"
+tensorflow = ">=2.6,<2.10"
 
 [tool.pytest.ini_options]
 filterwarnings = [

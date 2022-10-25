@@ -30,4 +30,5 @@ def test_logk(func, wrap, data):
     v = df['v']
     x = df['x']
     val = df['true']
-    assert np.all(np.isclose(func(v, x).numpy(), val))
+    out = func(v, x).numpy()
+    assert np.all(np.isclose(out, val))
