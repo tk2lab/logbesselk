@@ -155,7 +155,9 @@ def _log_bessel_k_naive(
     def loop(b, fmax, out):
         b += 1
         ft = funcb(b)
-        out = tf.where(fmax > ft, out + tf.exp(ft - fmax), out * tk.exp(fmax - ft) + 1)
+        out = tf.where(
+            fmax > ft, out + tf.exp(ft - fmax), out * tk.exp(fmax - ft) + 1
+        )
         fmax = tf.where(fmax > ft, fmax, ft)
         return b, fmax, out
 
