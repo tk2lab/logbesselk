@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "logbesselk"
-version = "2.5.0"
+version = "3.0.0"
 description = "Provide function to calculate the modified Bessel function of the second kind"
 license = "Apache-2.0"
 authors = ["TAKEKAWA Takashi <takekawa@tk2lab.org>"]
@@ -8,20 +8,21 @@ readme = "README.md"
 repository = "https://github.com/tk2lab/logbesselk"
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.11"
-tensorflow = ">=2.6,<2.10"
-
-[tool.pytest.ini_options]
-filterwarnings = [
-  "ignore:the imp module is deprecated:DeprecationWarning",
-  "ignore:.*will be removed in Pillow 10:DeprecationWarning",
-]
+python = ">=3.8,<3.12"
+#tensorflow = ">=2.6,<2.12"
+#jax = "^0.2+cuda"
 
 [tool.isort]
 profile = "black"
 
 [tool.black]
 line-length = 79
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  #"ignore:.*:DeprecationWarning",
+  #"ignore:overflow:RuntimeWarning",
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

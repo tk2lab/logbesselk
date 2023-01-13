@@ -3,9 +3,9 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 
-from logbesselk.integral import log_bessel_k
-from logbesselk.integral import bessel_ke
-from logbesselk.integral import bessel_k_ratio
+from logbesselk.tensorflow import log_bessel_k
+from logbesselk.tensorflow import bessel_ke
+from logbesselk.tensorflow import bessel_k_ratio
 
 
 funcs = dict(
@@ -32,8 +32,8 @@ def test_logk(func, wrap, data, dtype, bins):
     else:
         wrap_func = func_bins
     df = pd.read_csv(f'./data/{data}_mathematica.csv')
-    v = df['v'].to_numpy().astype(dtype)
-    x = df['x'].to_numpy().astype(dtype)
-    val = df['true'].to_numpy().astype(dtype)
+    v = tf.convert_to_tensor(df['v'].to_numpy(), dtype)
+    x = tf.convert_to_tensor(df['x'].to_numpy(), dtype)
+    val = tf.convert_to_tensor(df['true'].to_numpy(), dtype).numpy()
     out = wrap_func(v, x).numpy()
     assert np.allclose(out, val, rtol=5e-3, atol=0)
