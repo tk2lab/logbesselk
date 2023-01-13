@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/tk2lab/logbesselk"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = ">=3.8,<3.12"
 #tensorflow = ">=2.6,<2.12"
 #jax = "^0.2+cuda"
 
