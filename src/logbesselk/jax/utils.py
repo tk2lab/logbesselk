@@ -39,15 +39,21 @@ def find_zero(func, x0, dx, tol, max_iter):
 
         x_shrink = x0 + 0.5 * (x1 - x0)
         f_shrink = func(x_shrink)
-        x0, x1 = x_shrink, jnp.where(f_shrink * f0 < 0, x0, x1)
-        f0, f1 = f_shrink, jnp.where(f_shrink * f0 < 0, f0, f1)
+        x1, f1 = lax.cond(
+            f_shrink * f0 < 0,
+            lambda: (x0, f0),
+            lambda: (x1, f1),
+        )
+        x0, f0 = x_shrink, f_shrink
 
         dx = x1 - x0
         diff = -f0 / deriv(x0)
         ddx = diff / dx
-        x_newton = jnp.where((0 < ddx) & (ddx < 1), x0 + diff, x0)
+        cond = (0 < ddx) & (ddx < 1)
+        x_newton = lax.cond(cond, lambda: x0 + diff, lambda: x0)
         f_newton = func(x_newton)
-        x0, x1 = x_newton, jnp.where(f_newton * f0 < 0, x0, x1)
+        x1 = lax.cond(f_newton * f0 < 0, lambda: x0, lambda: x1)
+        x0 = x_newton
         return x0, x1, i + 1
 
     deriv = jax.grad(func)
@@ -61,19 +67,23 @@ def log_integrate(func, t0, t1, bins):
         return func(t)
 
     def cond(args):
-        fsum, fmax, b = args
+        fmax, fsum, b = args
         return b <= bins
 
     def body(args):
-        fsum, fmax, b = args
+        fmax, fsum, b = args
         ft = funcb(b)
         diff = ft - fmax
         cond = diff < 0
-        fsum = jnp.where(cond, fsum + jnp.exp(diff), fsum * jnp.exp(-diff) + 1)
-        fmax = jnp.where(cond, fmax, ft)
-        return fsum, fmax, b + 1
+        fmax, fsum = lax.cond(
+            diff < 0,
+            lambda: (fmax, fsum + jnp.exp(diff)),
+            lambda: (ft, fsum * jnp.exp(-diff) + 1),
+        )
+        return fmax, fsum, b + 1
 
-    init = jnp.ones_like(t0), funcb(0), 1
-    fsum, fmax, _ = lax.while_loop(cond, body, init)
-    h = (t1 - t0) / bins
+    fmax = funcb(0)
+    fsum = jnp.ones((), fmax.dtype)
+    fmax, fsum, _ = lax.while_loop(cond, body, (fmax, fsum, 1))
+    h = jnp.abs(t1 - t0) / bins
     return fmax + jnp.log(fsum) + jnp.log(h)

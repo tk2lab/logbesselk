@@ -10,19 +10,19 @@ repository = "https://github.com/tk2lab/logbesselk"
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
 #tensorflow = ">=2.6,<2.12"
-#jax = "^0.4.1"
-
-[tool.pytest.ini_options]
-filterwarnings = [
-  "ignore:the imp module is deprecated:DeprecationWarning",
-  "ignore:.*will be removed in Pillow 10:DeprecationWarning",
-]
+#jax = "^0.2+cuda"
 
 [tool.isort]
 profile = "black"
 
 [tool.black]
 line-length = 79
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  #"ignore:.*:DeprecationWarning",
+  #"ignore:overflow:RuntimeWarning",
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

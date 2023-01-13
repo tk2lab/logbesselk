@@ -69,7 +69,7 @@ def log_bessel_ku(u, x):
 
     max_iter = 100
 
-    dtype = jnp.asarray(u * x).dtype
+    dtype = jnp.result_type(p, q)
     eps = jnp.finfo(dtype).eps
 
     gp, gm = calc_gamma(u)

@@ -28,7 +28,7 @@ def log_bessel_k(v, x):
 def log_bessel_ku(u, x):
     def cond(args):
         si, ri, i, bi, ci, di, fp, fi, gi, hi = args
-        return (i < max_iter) * (jnp.abs(di * hi) > tol * jnp.abs(si))
+        return (i < max_iter) * (jnp.abs(di * hi) > eps * jnp.abs(si))
 
     def body(args):
         si, ri, i, bi, ci, di, fp, fi, gi, hi = args
@@ -48,8 +48,8 @@ def log_bessel_ku(u, x):
 
     max_iter = 100
 
-    dtype = jnp.asarray(u * x).dtype
-    tol = jnp.finfo(dtype).eps
+    dtype = jnp.result_type(p, q)
+    eps = jnp.finfo(dtype).eps
 
     i = 1
     a1 = (1 / 4) - jnp.square(u)

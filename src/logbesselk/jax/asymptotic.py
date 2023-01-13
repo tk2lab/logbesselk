@@ -21,7 +21,9 @@ def log_bessel_k_naive(v, x):
     return c - (1 / 2) * jnp.log(p) - p + v * jnp.log((v + p) / x) + jnp.log(r)
 
 
-log_bessel_k = wrap_simple(log_bessel_k_naive)
+@wrap_simple
+def log_bessel_k(v, x):
+    return log_bessel_k_naive(v, x)
 
 
 def update_factor(fac, i):
@@ -40,7 +42,8 @@ def poly(fac, size, x):
         out, j = args
         return fac[j] + x * out, j - 1
 
-    out = jnp.zeros((), fac.dtype)
+    dtype = jnp.result_type(v, x)
+    out = jnp.zeros((), dtype)
     return lax.while_loop(cond, body, (out, size - 1))[0]
 
 
@@ -54,7 +57,7 @@ def calc_r(p, q, max_iter):
         diff = poly(faci, i + 1, q) / pi
         return out + diff, i + 1, update_factor(faci, i), pi * p, diff
 
-    dtype = p.dtype
+    dtype = jnp.result_type(p, q)
     tol = jnp.finfo(dtype).eps
     one = jnp.ones((), dtype)
     faci = jnp.asarray([1] + [0] * (max_iter - 1), dtype)

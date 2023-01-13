@@ -1,5 +1,5 @@
 import pytest
-from logbesselk.integral import sign_bessel_k
+from logbesselk.jax.wrap import sign_bessel_k
 
 
 @pytest.mark.parametrize('v, x, m, n, sign', [
@@ -37,4 +37,4 @@ from logbesselk.integral import sign_bessel_k
     (-1., 1., 3, 3, +1.),
 ])
 def test_sign(v, x, m, n, sign):
-    assert sign_bessel_k(v, x, m, n).numpy() == sign
+    assert sign_bessel_k(v, x, m, n) == sign

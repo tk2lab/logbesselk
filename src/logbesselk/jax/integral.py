@@ -39,17 +39,16 @@ def log_bessel_k(v, x, m: int = 0, n: int = 0):
     bins = 32
     max_iter = 10
 
-    dtype = jnp.asarray(v * x).dtype
+    dtype = jnp.result_type(v, x)
     eps = jnp.finfo(dtype).eps
     zero = jnp.zeros((), dtype)
     scale = jnp.full((), dt0, dtype)
     deriv = jax.grad(func)
 
     start = zero
+    dt = scale
     if m == 0:
-        dt = scale
-    else:
-        dt = lax.cond(jnp.square(v) + m >= x, lambda: scale, lambda: zero)
+        dt = lax.cond(jnp.square(v) + m < x, lambda: zero, lambda: dt)
     start, dt = extend(deriv, start, dt)
     tp = find_zero(deriv, start, dt, tol, max_iter)
 
@@ -58,10 +57,12 @@ def log_bessel_k(v, x, m: int = 0, n: int = 0):
 
     start = zero
     dt = jnp.maximum(tp - bins * eps, 0)
+    dt = lax.cond(func_mth(start) > 0, lambda: zero, lambda: dt)
     t0 = find_zero(func_mth, start, dt, tol, max_iter)
 
     start = jnp.maximum(tp + bins * eps, tp * (1 + bins * eps))
-    dt = lax.cond(func_mth(start) > 0, lambda: scale, lambda: zero)
+    dt = scale
+    dt = lax.cond(func_mth(start) < 0, lambda: zero, lambda: dt)
     start, dt = extend(func_mth, start, dt)
     t1 = find_zero(func_mth, start, dt, tol, max_iter)
 

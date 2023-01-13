@@ -13,7 +13,7 @@ __all__ = [
 
 
 def sign_bessel_k(v, x, m=0, n=0):
-    dtype = jnp.asarray(v * x).dtype
+    dtype = jnp.result_type(v, x)
     plus = +jnp.ones((), dtype)
     minus = -jnp.ones((), dtype)
     if m % 2 == 0:
@@ -49,7 +49,7 @@ def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
 def wrap_simple(_log_bessel_k):
     @functools.wraps(_log_bessel_k)
     def log_bessel_k(v, x):
-        dtype = jnp.asarray(v * x).dtype
+        dtype = jnp.result_type(v, x)
         nan = jnp.full((), jnp.nan, dtype)
         inf = jnp.full((), jnp.inf, dtype)
         func0 = lambda: _log_bessel_k(jnp.abs(v), x)
@@ -78,7 +78,7 @@ def wrap_full(_log_bessel_k):
             raise ValueError()
         if n < 0:
             raise ValueError()
-        dtype = jnp.asarray(v * x).dtype
+        dtype = jnp.result_type(v, x)
         nan = jnp.full((), jnp.nan, dtype)
         inf = jnp.full((), jnp.inf, dtype)
         func0 = lambda: _log_bessel_k(jnp.abs(v), x, m, n)
