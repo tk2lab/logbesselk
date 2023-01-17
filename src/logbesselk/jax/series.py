@@ -69,7 +69,7 @@ def log_bessel_ku(u, x):
 
     max_iter = 100
 
-    dtype = jnp.result_type(p, q)
+    dtype = jnp.result_type(u, x)
     eps = jnp.finfo(dtype).eps
 
     gp, gm = calc_gamma(u)
@@ -77,12 +77,12 @@ def log_bessel_ku(u, x):
     mu = u * lxh
 
     i = 0
-    c0 = jnp.ones((), dtype)
+    c0 = jnp.asarray(1, dtype)
     p0 = (1 / 2) * jnp.exp(-mu) / (gp - u * gm)
     q0 = (1 / 2) * jnp.exp(+mu) / (gp + u * gm)
     f0 = (gm * jnp.cosh(mu) - gp * lxh * sinhc(mu)) / jnp.sinc(u)
     k0 = c0 * f0
     l0 = c0 * (p0 - i * f0)
     init = k0, l0, i, c0, p0, q0, f0
-    ku, kn, counter, *_ = lax.while_loop(cond, body, init)
+    ku, kn, *_ = lax.while_loop(cond, body, init)
     return jnp.log(ku), jnp.log(kn) - lxh

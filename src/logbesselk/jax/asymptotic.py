@@ -10,6 +10,11 @@ __all__ = [
 ]
 
 
+@wrap_simple
+def log_bessel_k(v, x):
+    return log_bessel_k_naive(v, x)
+
+
 def log_bessel_k_naive(v, x):
     """
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
@@ -17,13 +22,26 @@ def log_bessel_k_naive(v, x):
     c = (1 / 2) * math.log((1 / 2) * math.pi)
     p = jnp.hypot(v, x)
     q = jnp.square(v / p)
-    r = calc_r(p, q, max_iter=100)
-    return c - (1 / 2) * jnp.log(p) - p + v * jnp.log((v + p) / x) + jnp.log(r)
+    logr = jnp.log(calc_r(p, q, max_iter=100))
+    return c - (1 / 2) * jnp.log(p) - p + v * jnp.log((v + p) / x) + logr
 
 
-@wrap_simple
-def log_bessel_k(v, x):
-    return log_bessel_k_naive(v, x)
+def calc_r(p, q, max_iter):
+    def cond(args):
+        out, i, faci, pi, diff = args
+        return jnp.abs(diff) > eps * jnp.abs(out)
+
+    def body(args):
+        out, i, faci, pi, _ = args
+        diff = poly(faci, i + 1, q) / pi
+        return out + diff, i + 1, update_factor(faci, i), pi * p, diff
+
+    dtype = jnp.result_type(p, q)
+    eps = jnp.finfo(dtype).eps
+    zero = jnp.asarray(0, dtype)
+    one = jnp.asarray(1, dtype)
+    faci = jnp.asarray([1] + [0] * (max_iter - 1), dtype)
+    return lax.while_loop(cond, body, (zero, 0, faci, one, one))[0]
 
 
 def update_factor(fac, i):
@@ -42,23 +60,6 @@ def poly(fac, size, x):
         out, j = args
         return fac[j] + x * out, j - 1
 
-    dtype = jnp.result_type(v, x)
-    out = jnp.zeros((), dtype)
-    return lax.while_loop(cond, body, (out, size - 1))[0]
-
-
-def calc_r(p, q, max_iter):
-    def cond(args):
-        out, i, faci, pi, diff = args
-        return jnp.abs(diff) > tol * jnp.abs(out)
-
-    def body(args):
-        out, i, faci, pi, _ = args
-        diff = poly(faci, i + 1, q) / pi
-        return out + diff, i + 1, update_factor(faci, i), pi * p, diff
-
-    dtype = jnp.result_type(p, q)
-    tol = jnp.finfo(dtype).eps
-    one = jnp.ones((), dtype)
-    faci = jnp.asarray([1] + [0] * (max_iter - 1), dtype)
-    return lax.while_loop(cond, body, (one, 0, faci, one, one))[0]
+    dtype = jnp.result_type(x)
+    zero = jnp.zeros((), dtype)
+    return lax.while_loop(cond, body, (zero, size - 1))[0]

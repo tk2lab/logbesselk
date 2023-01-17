@@ -23,9 +23,9 @@ def sign_bessel_k(v, x, m=0, n=0):
             return minus
     else:
         if n % 2 == 0:
-            return jnp.where(v < 0, minus, plus)
+            return lax.cond(v < 0, lambda: minus, lambda: plus)
         else:
-            return jnp.where(v < 0, plus, minus)
+            return lax.cond(v < 0, lambda: plus, lambda: minus)
 
 
 def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
@@ -38,8 +38,7 @@ def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
         uj = ui + 1
         nj = ni - 1
         kk = jnp.logaddexp(ki, kj + jnp.log(2 * uj / x))
-        k0 = jnp.where(ni > 0, kj, ki)
-        k1 = jnp.where(ni > 0, kk, kj)
+        k0, k1 = lax.cond(ni > 0, lambda: (kj, kk), lambda: (ki, kj))
         return k0, k1, uj, nj
 
     init = log_ku, log_kup1, u, n
@@ -50,8 +49,8 @@ def wrap_simple(_log_bessel_k):
     @functools.wraps(_log_bessel_k)
     def log_bessel_k(v, x):
         dtype = jnp.result_type(v, x)
-        nan = jnp.full((), jnp.nan, dtype)
-        inf = jnp.full((), jnp.inf, dtype)
+        nan = jnp.asarray(jnp.nan, dtype)
+        inf = jnp.asarray(jnp.inf, dtype)
         func0 = lambda: _log_bessel_k(jnp.abs(v), x)
         func1 = lambda: lax.cond(x == 0, lambda: inf, func0)
         return lax.cond(x < 0, lambda: nan, func1)
@@ -79,15 +78,13 @@ def wrap_full(_log_bessel_k):
         if n < 0:
             raise ValueError()
         dtype = jnp.result_type(v, x)
-        nan = jnp.full((), jnp.nan, dtype)
-        inf = jnp.full((), jnp.inf, dtype)
-        func0 = lambda: _log_bessel_k(jnp.abs(v), x, m, n)
+        nan = jnp.asarray(jnp.nan, dtype)
+        inf = jnp.asarray(jnp.inf, dtype)
+        out = _log_bessel_k(jnp.abs(v), x, m, n)
         if m % 2 == 0:
-            func1 = func0
+            return jnp.select([x < 0, x == 0], [nan, inf], out)
         else:
-            func1 = lambda: lax.cond(v == 0, lambda: -inf, func0)
-        func2 = lambda: lax.cond(x == 0, lambda: inf, func1)
-        return lax.cond(x < 0, lambda: nan, func2)
+            return jnp.select([x < 0, x == 0, v == 0], [nan, inf, -inf], out)
 
     def log_bessel_k_fwd(v, x, m, n):
         logk = log_bessel_k(v, x, m, n)
