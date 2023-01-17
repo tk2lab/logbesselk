@@ -48,7 +48,7 @@ def log_bessel_ku(u, x):
 
     max_iter = 100
 
-    dtype = jnp.result_type(p, q)
+    dtype = jnp.result_type(u, x)
     eps = jnp.finfo(dtype).eps
 
     i = 1
@@ -59,8 +59,8 @@ def log_bessel_ku(u, x):
     d1 = 1 / b1
     r1 = d1
 
-    f0 = jnp.zeros((), dtype)
-    f1 = jnp.ones((), dtype)
+    f0 = jnp.asarray(0, dtype)
+    f1 = jnp.asarray(1, dtype)
     g1 = a1
     h1 = f1 * g1
     s1 = 1 + d1 * h1
