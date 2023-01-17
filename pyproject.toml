@@ -25,18 +25,14 @@ line-length = 79
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist =
-    py38-tf{26,211}, py39-tf26, py310-tf{29,211},
-    py38-jax{3,4}, py311-jax{3,4},
-    lint, eval_tf, eval_jax
 isolated_build = True
 
 [gh-actions]
 python =
-    3.8: py-tf26, py-tf211, py-jax3, py-jax4
-    3.9: py-tf26
-    3.10: py-tf29, py-tf211
-    3.11: py-jax3, py-jax4
+    3.8: py38-tf26, py38-tf211, py38-jax3, py38-jax4
+    3.9: py39-tf26
+    3.10: py310-tf29, py310-tf211
+    3.11: py311-jax3, py311-jax4
 
 [testenv:lint]
 skip_install = True
