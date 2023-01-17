@@ -25,7 +25,14 @@ line-length = 79
 [tool.tox]
 legacy_tox_ini = """
 [tox]
+min_version = 4.0
 isolated_build = True
+env_list = 
+    py{38,39,310,}-tf{26,27,28,29,210,211}
+    py{38,39,310,311,}-jax{3,4}
+    lint
+    eval_tf
+    eval_jax
 
 [gh-actions]
 python =
@@ -45,7 +52,7 @@ commands =
     autoflake -ri --remove-all-unused-imports --ignore-init-module-imports src
     black src
 
-[testenv:py{,38,39,310,311}-tf{26,27,28,29,210,211}]
+[testenv:py{38,39,310,311,}-tf{26,27,28,29,210,211}]
 deps =
     tf26: tensorflow (>=2.6,<2.7)
     tf27: tensorflow (>=2.7,<2.8)
@@ -58,7 +65,7 @@ deps =
 commands =
     {envpython} -m pytest tests --ignore-glob=tests/test_jax_*.py
 
-[testenv:py{,38,39,310,311}-jax{3,4}]
+[testenv:py{38,39,310,311,}-jax{3,4}]
 deps =
     jax3: jax[cuda] (>=0.3,<0.4)
     jax4: jax[cuda] (>=0.4,<0.5)
