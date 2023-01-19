@@ -77,8 +77,8 @@ def log_bessel_k(v, x, m: int = 0, n: int = 0):
     mfunc = lambda t: func(t) - th
     tpl = jnp.maximum(tp - bins * eps, zero)
     tpr = jnp.maximum(tp + bins * eps, tp * (1 + bins * eps))
-    mfunc_at_zero_is_negative = out_is_finite & (mfunc(zero) <= 0)
-    mfunc_at_tpr_is_positive = out_is_finite & (mfunc(tpr) <= 0)
+    mfunc_at_zero_is_negative = out_is_finite & (mfunc(zero) < 0)
+    mfunc_at_tpr_is_positive = out_is_finite & (mfunc(tpr) > 0)
 
     start = zero
     delta = lax.cond(mfunc_at_zero_is_negative, lambda: tpl, lambda: zero)
