@@ -2,15 +2,15 @@ import jax.lax as lax
 import jax.numpy as jnp
 
 from .math import sinhc
-from .wrap import log_bessel_recurrence
-from .wrap import wrap_simple
+from .misc import log_bessel_recurrence
+from .wrap import wrap_log_bessel_k
 
 __all__ = [
     "log_bessel_k",
 ]
 
 
-@wrap_simple
+@wrap_log_bessel_k
 def log_bessel_k(v, x):
     """
     N. M. Temme.
@@ -69,7 +69,7 @@ def log_bessel_ku(u, x):
 
     max_iter = 100
 
-    dtype = jnp.result_type(u, x)
+    dtype = jnp.result_type(u, x).type
     eps = jnp.finfo(dtype).eps
 
     gp, gm = calc_gamma(u)
@@ -77,7 +77,7 @@ def log_bessel_ku(u, x):
     mu = u * lxh
 
     i = 0
-    c0 = jnp.asarray(1, dtype)
+    c0 = dtype(1)
     p0 = (1 / 2) * jnp.exp(-mu) / (gp - u * gm)
     q0 = (1 / 2) * jnp.exp(+mu) / (gp + u * gm)
     f0 = (gm * jnp.cosh(mu) - gp * lxh * sinhc(mu)) / jnp.sinc(u)

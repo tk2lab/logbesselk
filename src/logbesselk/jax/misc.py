@@ -1,29 +1,34 @@
+import jax.lax as lax
 import jax.numpy as jnp
 
-from .wrap import sign_bessel_k
-
 __all__ = [
-    "wrap_slog_bessel_k",
-    "wrap_bessel_ke",
-    "wrap_bessel_k_ratio",
+    "log_bessel_recurrence",
+    "sign_bessel_k_deriv",
 ]
 
 
-def wrap_slog_bessel_k(log_bessel_k, v, x, m=0, n=0):
-    sign = sign_bessel_k(v, x, m, n)
-    logk = log_bessel_k(v, x, m, n)
-    return sign, logk
+def sign_bessel_k_deriv(v, x, m=0, n=0):
+    dtype = jnp.result_type(v, x)
+    sign = jnp.asarray(1, dtype)
+    if n % 2 == 1:
+        sign * -1
+    if m % 2 == 0:
+        return sign
+    else:
+        return jnp.sign(v) * sign
 
 
-def wrap_bessel_ke(log_bessel_k, v, x):
-    sign = sign_bessel_k(v, x)
-    logk = log_bessel_k(v, x)
-    return sign * jnp.exp(logk + x)
+def log_bessel_recurrence(log_ku, log_kup1, u, n, x):
+    def cond(args):
+        ki, kj, ui, ni = args
+        return ni > 0
 
+    def body(args):
+        ki, kj, ui, ni = args
+        uj = ui + 1
+        nj = ni - 1
+        kk = jnp.logaddexp(ki, kj + jnp.log(2 * uj / x))
+        return kj, kk, uj, nj
 
-def wrap_bessel_k_ratio(log_bessel_k, v, x, d=1):
-    signd = sign_bessel_k(v + d, x)
-    logkd = log_bessel_k(v + d, x)
-    sign = sign_bessel_k(v, x)
-    logk = log_bessel_k(v, x)
-    return signd * sign * jnp.exp(logkd - logk)
+    init = log_ku, log_kup1, u, n
+    return lax.while_loop(cond, body, init)[:2]

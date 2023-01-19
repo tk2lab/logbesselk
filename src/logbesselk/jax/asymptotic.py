@@ -3,17 +3,22 @@ import math
 import jax.lax as lax
 import jax.numpy as jnp
 
-from .wrap import wrap_simple
+from .wrap import wrap_log_bessel_k
 
 __all__ = [
     "log_bessel_k",
 ]
 
 
-def log_bessel_k_naive(v, x):
+@wrap_log_bessel_k
+def log_bessel_k(v, x):
     """
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
     """
+    return log_bessel_k_naive(v, x)
+
+
+def log_bessel_k_naive(v, x):
     c = (1 / 2) * math.log((1 / 2) * math.pi)
     p = jnp.hypot(v, x)
     q = jnp.square(v / p)

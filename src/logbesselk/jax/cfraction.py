@@ -3,15 +3,15 @@ import math
 import jax.lax as lax
 import jax.numpy as jnp
 
-from .wrap import log_bessel_recurrence
-from .wrap import wrap_simple
+from .misc import log_bessel_recurrence
+from .wrap import wrap_log_bessel_k
 
 __all__ = [
     "log_bessel_k",
 ]
 
 
-@wrap_simple
+@wrap_log_bessel_k
 def log_bessel_k(v, x):
     """
     I.J. Thompson and A.R. Barnett,

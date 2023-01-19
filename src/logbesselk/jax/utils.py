@@ -25,7 +25,7 @@ def extend(func, x0, dx):
     return x, d
 
 
-def find_zero(func, x0, dx, tol, max_iter):
+def find_zero(func, x0, dx, tol: float, max_iter: int):
     def cond(args):
         x0, x1, i = args
         f0 = func(x0)
@@ -56,30 +56,27 @@ def find_zero(func, x0, dx, tol, max_iter):
     return lax.while_loop(cond, body, (x0, x0 + dx, 0))[0]
 
 
-def log_integrate(func, t0, t1, bins):
-    def funcb(b):
-        a = (2 * b + 1) / (2 * bins)
-        t = (1 - a) * t0 + a * t1
-        return func(t)
-
+def log_integrate(func, t0, t1, bins: int):
     def cond(args):
-        fmax, fsum, b = args
-        return b <= bins
+        fmax, fsum, i = args
+        return i <= bins
 
     def body(args):
-        fmax, fsum, b = args
-        ft = funcb(b)
+        fmax, fsum, i = args
+        a = (2 * i + 1) / (2 * bins)
+        t = (1 - a) * t0 + a * t1
+        ft = func(t)
         diff = ft - fmax
-        cond = diff < 0
         fmax, fsum = lax.cond(
             diff < 0,
             lambda: (fmax, fsum + jnp.exp(diff)),
             lambda: (ft, fsum * jnp.exp(-diff) + 1),
         )
-        return fmax, fsum, b + 1
+        return fmax, fsum, i + 1
 
-    zero = jnp.asarray(0, t0.dtype)
-    bins = lax.cond(t0 == t1, lambda: zero, lambda: bins)
-    fmax, fsum, _ = lax.while_loop(cond, body, (zero, zero, zero))
+    dtype = jnp.result_type(t0, t1, jnp.float32).type
+    bins = lax.cond(t0 == t1, lambda: jnp.int32(0), lambda: jnp.int32(bins))
+    init = dtype(0), dtype(0), jnp.int32(0)
+    fmax, fsum, _ = lax.while_loop(cond, body, init)
     h = jnp.abs(t1 - t0) / bins
     return fmax + jnp.log(fsum) + jnp.log(h)
