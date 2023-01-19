@@ -41,17 +41,6 @@ python =
     3.10: py310-tf29, py310-tf211
     3.11: py311-jax3, py311-jax4
 
-[testenv:lint]
-skip_install = True
-deps =
-    isort
-    black
-    autoflake
-commands =
-    isort --sl src
-    autoflake -ri --remove-all-unused-imports --ignore-init-module-imports src
-    black src
-
 [testenv:py{38,39,310,311,}-tf{26,27,28,29,210,211}]
 deps =
     tf26: tensorflow (>=2.6,<2.7)
@@ -75,6 +64,17 @@ install_command =
     pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
 commands =
     {envpython} -m pytest tests --ignore-glob=tests/test_tf_*.py
+
+[testenv:lint]
+skip_install = True
+deps =
+    isort
+    black
+    autoflake
+commands =
+    isort --sl src
+    autoflake -ri --remove-all-unused-imports --ignore-init-module-imports src
+    black src
 
 [testenv:eval_tf]
 deps =
