@@ -54,7 +54,7 @@ def log_bessel_ku(u, x):
 
     def cond(args):
         ki, li, i, ci, pi, qi, fi = args
-        return (i < max_iter) & (jnp.abs(ci * fi) > eps * jnp.abs(ki))
+        return (i < max_iter) & (jnp.abs(ci * fi) >= eps * jnp.abs(ki))
 
     def body(args):
         ki, li, i, ci, pi, qi, fi = args
