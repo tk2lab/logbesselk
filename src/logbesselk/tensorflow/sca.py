@@ -2,6 +2,9 @@ import tensorflow as tf
 
 from .asymptotic import log_bessel_k as log_k_large_v
 from .cfraction import log_bessel_ku as log_ku_large_x
+from .math import fround
+from .math import is_finite
+from .math import log
 from .misc import log_bessel_recurrence
 from .series import log_bessel_ku as log_ku_small_x
 from .utils import result_type
@@ -34,7 +37,7 @@ def log_bessel_k(v, x):
             u_ = tf.where(small_x, u, tf.constant(1 / 2, dtype))
             return log_ku_small_x(u_, x)
 
-        n = tf.math.round(v)
+        n = fround(v)
         u = v - n
         logk0l, logk1l = large_x_ku()
         logk0s, logk1s = small_x_ku()
@@ -44,13 +47,14 @@ def log_bessel_k(v, x):
 
     dtype = result_type(v, x)
 
-    finite = x > 0
+    finite = is_finite(v) & is_finite(x) & (x > 0)
     large_v_ = v >= 25
-    large_x_ = x >= 1.6 + (1 / 2) * tf.math.log(v + 1)
+    large_x_ = x >= 1.6 + (1 / 2) * log(v + 1)
 
     large_v = finite & large_v_
     large_x = finite & ~large_v_ & large_x_
     small_x = finite & ~large_v_ & ~large_x_
+    tf.print(v, x)
     return tf.where(large_v, large_v_case(), small_v_case())
 
 

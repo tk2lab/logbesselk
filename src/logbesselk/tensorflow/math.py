@@ -1,58 +1,112 @@
+import functools
 import math
 
 import tensorflow as tf
+from tensorflow.math import abs as fabs
+from tensorflow.math import cosh
+from tensorflow.math import exp
+from tensorflow.math import expm1
+from tensorflow.math import is_finite
+from tensorflow.math import log
+from tensorflow.math import log1p
+from tensorflow.math import maximum
+from tensorflow.math import round as fround
+from tensorflow.math import sign
+from tensorflow.math import sin
+from tensorflow.math import sinh
+from tensorflow.math import sqrt
+from tensorflow.math import square
+from tensorflow.math import tanh
+from tensorflow import where
 
 __all__ = [
+    "fabs",
+    "cosh",
+    "exp",
+    "expm1",
+    "is_finite",
+    "log",
+    "log1p",
+    "maximum",
+    "fround",
+    "sign",
+    "sin",
+    "sinh",
+    "sqrt",
+    "square",
+    "tanh",
     "sinc",
     "sinhc",
     "log_sinh",
     "log_cosh",
+    "where",
 ]
 
 
 def sinc(x):
     pix = math.pi * x
-    return tf.where(
+    return where(
         tf.equal(x, 0),
         tf.constant(1, x.dtype),
-        tf.math.sin(pix) / pix,
+        sin(pix) / pix,
     )
 
 
 def sinhc(x):
-    return tf.where(
+    return where(
         tf.equal(x, 0),
         tf.constant(1, x.dtype),
-        tf.math.sinh(x) / x,
+        sinh(x) / x,
     )
-
-
-@tf.custom_gradient
-def log_sinh(x):
-    def grad(upstream):
-        return upstream / tf.math.tanh(x)
-
-    out = tf.where(
-        x < 20,
-        tf.math.log(tf.math.sinh(x)),
-        x - math.log(2),
-    )
-    return out, grad
-
-
-@tf.custom_gradient
-def log_cosh(x):
-    def grad(upstream):
-        return upstream * tf.math.tanh(x)
-
-    out = x + tf.math.log1p(tf.math.expm1(-2 * x) / 2)
-    return out, grad
 
 
 def log_add_exp(x, y, sign=None):
-    larger = tf.math.maximum(x, y)
+    larger = maximum(x, y)
     if sign is None:
         sign = 1
-    return larger + tf.math.log(
-        tf.math.exp(x - larger) + sign * tf.math.exp(y - larger)
-    )
+    return larger + log(exp(x - larger) + sign * exp(y - larger))
+
+
+def func_with_vjp(gen):
+    def wrap_func(*args, **kwargs):
+        out, res = fwd(custom_func, *args, **kwargs)
+
+        def grad(upstream):
+            return bwd(custom_func, res, upstream)
+
+        return out, grad
+
+    func, fwd, bwd = gen()
+    func = functools.wraps(gen)(func)
+    custom_func = tf.custom_gradient(wrap_func)
+    return custom_func
+
+
+@func_with_vjp
+def log_sinh():
+    def func(x):
+        return where(x < 20, log(sinh(x)), x - math.log(2))
+
+    def fwd(wrap_func, x):
+        return func(x), x
+
+    def bwd(wrap_func, x, upstream):
+        dx = 1 / tanh(x)
+        return (upstream * dx,)
+
+    return func, fwd, bwd
+
+
+@func_with_vjp
+def log_cosh():
+    def func(x):
+        return x + log1p(expm1(-2 * x) / 2)
+
+    def fwd(wrap_func, x):
+        return func(x), x
+
+    def bwd(wrap_func, x, upstream):
+        dx = tanh(x)
+        return (upstream * dx,)
+
+    return func, fwd, bwd

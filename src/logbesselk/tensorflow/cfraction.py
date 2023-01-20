@@ -2,6 +2,10 @@ import math
 
 import tensorflow as tf
 
+from .math import fabs
+from .math import fround
+from .math import log
+from .math import square
 from .misc import log_bessel_recurrence
 from .utils import epsilon
 from .utils import result_shape
@@ -21,7 +25,7 @@ def log_bessel_k(v, x):
     and complex argument, to selected accuracy,
     Computer Physics Communications, 47, 245-257 (1987).
     """
-    n = tf.math.round(v)
+    n = fround(v)
     u = v - n
     log_ku, log_kup1 = log_bessel_ku(u, x)
     return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
@@ -29,12 +33,12 @@ def log_bessel_k(v, x):
 
 def log_bessel_ku(u, x):
     def cond(si, ri, i, bi, ci, di, fp, fi, gi, hi):
-        nonzero_update = tf.math.abs(di * hi) > eps * tf.math.abs(si)
+        nonzero_update = fabs(di * hi) > eps * fabs(si)
         return tf.math.reduce_any(nonzero_update)
 
     def body(si, ri, i, bi, ci, di, fp, fi, gi, hi):
         j = i + 1
-        aj = tf.math.square(j - (1 / 2)) - tf.math.square(u)
+        aj = square(j - (1 / 2)) - square(u)
         bj = 2 * (x + j)
 
         cj = 1 / (bj - aj * ci)
@@ -52,7 +56,7 @@ def log_bessel_ku(u, x):
     eps = epsilon(dtype)
 
     i = tf.constant(1, dtype)
-    a1 = (1 / 4) - tf.math.square(u)
+    a1 = (1 / 4) - square(u)
     b1 = 2 * x + 2
 
     c1 = 1 / b1
@@ -69,6 +73,6 @@ def log_bessel_ku(u, x):
     sn, rn, *_ = tf.while_loop(cond, body, init, maximum_iterations=100)
 
     c = (1 / 2) * math.log((1 / 2) * math.pi)
-    log_ku = c - (1 / 2) * tf.math.log(x) - x - tf.math.log(sn)
-    log_kup1 = log_ku + tf.math.log(((1 / 2) + u + x - a1 * rn) / x)
+    log_ku = c - (1 / 2) * log(x) - x - log(sn)
+    log_kup1 = log_ku + log(((1 / 2) + u + x - a1 * rn) / x)
     return log_ku, log_kup1

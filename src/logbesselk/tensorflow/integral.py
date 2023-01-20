@@ -1,10 +1,16 @@
 import tensorflow as tf
 
+from .math import cosh
+from .math import is_finite
+from .math import log
 from .math import log_cosh
 from .math import log_sinh
+from .math import maximum
+from .math import square
 from .utils import epsilon
 from .utils import extend
 from .utils import find_zero
+from .utils import grad
 from .utils import log_integrate
 from .utils import result_shape
 from .utils import result_type
@@ -39,17 +45,12 @@ def bessel_ke(v, x):
 
 
 @wrap_log_abs_deriv_bessel_k
-def log_abs_deriv_bessel_k(v, x, m: int = 0, n: int = 0):
+def log_abs_deriv_bessel_k(v, x, m=0, n=0):
     def func(t):
-        out = -x * tk.cosh(t)
-        if m % 2 == 0:
-            out += log_cosh(v * t)
-        else:
-            out += log_sinh(v * t)
-        if m > 0:
-            out += m * tf.math.log(t)
-        if n > 0:
-            out += n * tf.math.log_cosh(t)
+        out = -x * cosh(t)
+        out += tf.where(tf.equal(m % 2, 0), log_cosh(v * t), log_sinh(v * t))
+        out = tf.where(m > 0, out + tf.cast(m, dtype) * log(t), out)
+        out = tf.where(n > 0, out + tf.cast(n, dtype) * log_cosh(t), out)
         return out
 
     scale = 0.1
@@ -59,38 +60,43 @@ def log_abs_deriv_bessel_k(v, x, m: int = 0, n: int = 0):
 
     shape = result_shape(v, x)
     dtype = result_type(v, x)
-    deriv = get_deriv_func(func)
+    deriv = grad(func)
     eps = epsilon(dtype)
-    zero = tf.constant(0, dtype)
+    zero = tf.zeros(shape, dtype)
     scale = tf.constant(scale, dtype)
 
-    out_is_finite = tf.math.is_finite(v) & tf.math.is_finite(x)
-    out_is_finite &= x > 0
-    if m % 2 == 1:
-        out_is_finite &= v > 0
+    out_is_finite = is_finite(v) & is_finite(x)
+    out_is_finite &= tf.where(tf.equal(m % 2, 1), (x > 0) & (v > 0), (x > 0))
 
-    deriv_at_zero_is_positive = out_is_finite
-    if m == 0:
-        deriv_at_zero_is_positive &= tf.math.square(v) + m > x
+    deriv_at_zero_is_positive = tf.where(
+        tf.equal(m, 0),
+        out_is_finite & (square(v) + tf.cast(m, dtype) > x),
+        out_is_finite,
+    )
 
     start = tf.zeros(shape, dtype)
     delta = tf.where(deriv_at_zero_is_positive, scale, zero)
     start, delta = extend(deriv, start, delta)
-    tp = find_zero(func, start, delta, tol, max_iter)
+    tp = find_zero(deriv, start, delta, tol, max_iter)
 
-    th = func(tp) + tf.math.log(eps) - tol
+    th = func(tp) + log(eps) - tol
     mfunc = lambda t: func(t) - th
-    tpl = tf.math.maximum(tp - bins * eps, zero)
-    tpr = tf.math.maximum(tp + bins * eps, tp + (1 + bins * eps))
-    mfunc_at_zero_is_negative = out_is_finite & (mfunc(tpr) < 0)
+    tpl = maximum(tp - bins * eps, zero)
+    tpr = maximum(tp + bins * eps, tp * (1 + bins * eps))
+    mfunc_at_zero_is_negative = out_is_finite & (mfunc(zero) < 0)
     mfunc_at_tpr_is_positive = out_is_finite & (mfunc(tpr) > 0)
 
-    start = tf.zeros(shape, dtype)
+    start = zero
     delta = tf.where(mfunc_at_zero_is_negative, tpl, zero)
     t0 = find_zero(mfunc, start, delta, tol, max_iter)
 
     start = tpr
     delta = tf.where(mfunc_at_tpr_is_positive, scale, zero)
+    start, delta = extend(mfunc, start, delta)
     t1 = find_zero(mfunc, start, delta, tol, max_iter)
 
-    return log_integrate(func, t0, t1, bins)
+    return tf.cond(
+        tf.math.reduce_any(t0 < t1),
+        lambda: log_integrate(func, t0, t1, bins),
+        lambda: tf.zeros(shape, dtype),
+    )
