@@ -1,172 +1,96 @@
 import tensorflow as tf
 
-from . import math as tk
-from .utils import find_peak
+from .math import log_cosh
+from .math import log_sinh
+from .utils import epsilon
+from .utils import extend
 from .utils import find_zero
-from .utils import find_zero_with_extend
+from .utils import log_integrate
+from .utils import result_shape
+from .utils import result_type
+from .wrap import wrap_bessel_ke
+from .wrap import wrap_bessel_kratio
+from .wrap import wrap_log_abs_deriv_bessel_k
 
 __all__ = [
-    "sign_bessel_k",
     "log_bessel_k",
-    "slog_bessel_k",
     "bessel_ke",
-    "bessel_k_ratio",
+    "bessel_kratio",
+    "log_abs_deriv_bessel_k",
 ]
 
 
-def sign_bessel_k(v, x, m=0, n=0, name=None):
-    with tf.name_scope(name or "sign_bessel_k_tk2"):
-        dtype = tk.common_dtype([v, x], tf.float32)
-        x = tf.convert_to_tensor(x, dtype)
-        v = tf.convert_to_tensor(v, dtype)
-        return _sign_bessel_k_naive(v, x, m, n)
+def log_bessel_k(v, x):
+    """
+    Takashi Takekawa,
+    Fast parallel calculation of modified Bessel function
+    of the second kind and its derivatives,
+    SoftwareX, 17, 100923 (2022).
+    """
+    return log_abs_deriv_bessel_k(v, x)
 
 
-def log_bessel_k(v, x, m=0, n=0, name=None, **kwargs):
-    with tf.name_scope(name or "log_bessel_k_tk2"):
-        dtype = tk.common_dtype([v, x], tf.float32)
-        x = tf.convert_to_tensor(x, dtype)
-        v = tf.convert_to_tensor(v, dtype)
-        return _log_bessel_k_custom_gradient(v, x, m, n, **kwargs)
+def bessel_kratio(v, x, d: int = 1):
+    return wrap_bessel_kratio(log_bessel_k, v, x, d)
 
 
-def slog_bessel_k(v, x, m=0, n=0, name=None, **kwargs):
-    with tf.name_scope(name or "slog_bessel_k_tk2"):
-        dtype = tk.common_dtype([v, x], tf.float32)
-        x = tf.convert_to_tensor(x, dtype)
-        v = tf.convert_to_tensor(v, dtype)
-        sign = _sign_bessel_k_naive(v, x, m, n)
-        logk = _log_bessel_k_custom_gradient(v, x, m, n, **kwargs)
-        return sign, logk
+def bessel_ke(v, x):
+    return wrap_bessel_ke(log_bessel_k, v, x)
 
 
-def bessel_ke(v, x, m=0, n=0, name=None, **kwargs):
-    with tf.name_scope(name or "bessel_ke_tk2"):
-        dtype = tk.common_dtype([v, x], tf.float32)
-        x = tf.convert_to_tensor(x, dtype)
-        v = tf.convert_to_tensor(v, dtype)
-        sign = _sign_bessel_k_naive(v, x, m, n)
-        logk = _log_bessel_k_custom_gradient(v, x, m, n, **kwargs)
-        return sign * tk.exp(logk + x)
-
-
-def bessel_k_ratio(v, x, d=1, m=0, n=0, name=None, **kwargs):
-    with tf.name_scope(name or "bessel_k_ratio_tk2"):
-        dtype = tk.common_dtype([v, x], tf.float32)
-        x = tf.convert_to_tensor(x, dtype)
-        v = tf.convert_to_tensor(v, dtype)
-        d = tf.convert_to_tensor(d, dtype)
-        signd = _sign_bessel_k_naive(v + d, x, m, n)
-        logkd = _log_bessel_k_custom_gradient(v + d, x, m, n, **kwargs)
-        sign = _sign_bessel_k_naive(v, x, m, n)
-        logk = _log_bessel_k_custom_gradient(v, x, m, n, **kwargs)
-        return signd * sign * tf.exp(logkd - logk)
-
-
-def _log_bessel_k_custom_gradient(v, x, m, n, **kwargs):
-    @tf.custom_gradient
-    def logk_vx(v, x):
-        def _grad(u):
-            sign = _sign_bessel_k_naive(v, x, m, n)
-            sign_dv = _sign_bessel_k_naive(v, x, m + 1, n)
-            logk_dv = _log_bessel_k_custom_gradient(v, x, m + 1, n, **kwargs)
-            sign_dx = _sign_bessel_k_naive(v, x, m, n + 1)
-            logk_dx = _log_bessel_k_custom_gradient(v, x, m, n + 1, **kwargs)
-            return (
-                u * sign_dv * sign * tk.exp(logk_dv - logk),
-                u * sign_dx * sign * tk.exp(logk_dx - logk),
-            )
-
-        logk = _log_bessel_k_naive(v, x, m, n, **kwargs)
-        return logk, _grad
-
-    return logk_vx(v, x)
-
-
-def _sign_bessel_k_naive(v, x, m, n):
-    dtype = tk.common_dtype([v, x])
-    if m % 2 == 0:
-        return tf.cast(1 if n % 2 == 0 else -1, dtype)
-    elif n % 2 == 0:
-        return tf.where(v < 0, tf.cast(-1, dtype), tf.cast(1, dtype))
-    else:
-        return tf.where(v < 0, tf.cast(1, dtype), tf.cast(-1, dtype))
-
-
-def _log_bessel_k_func(v, x, t, m, n):
-    out = tk.log_cosh(v * t) if m % 2 == 0 else tk.log_sinh(v * t)
-    out -= x * tk.cosh(t)
-    if m > 0:
-        out += m * tk.log(t)
-    if n > 0:
-        out += n * tk.log_cosh(t)
-    return out
-
-
-def _log_bessel_k_naive(
-    v, x, m=0, n=0, mask=None, dt0=0.1, tol=1.0, max_iter=10, bins=32
-):
+@wrap_log_abs_deriv_bessel_k
+def log_abs_deriv_bessel_k(v, x, m: int = 0, n: int = 0):
     def func(t):
-        return _log_bessel_k_func(v, x, t, m, n)
+        out = -x * tk.cosh(t)
+        if m % 2 == 0:
+            out += log_cosh(v * t)
+        else:
+            out += log_sinh(v * t)
+        if m > 0:
+            out += m * tf.math.log(t)
+        if n > 0:
+            out += n * tf.math.log_cosh(t)
+        return out
 
-    def func_mth(t):
-        return func(t) - th
+    scale = 0.1
+    tol = 1.0
+    max_iter = 10
+    bins = 32
 
-    v = tk.abs(v)
+    shape = result_shape(v, x)
+    dtype = result_type(v, x)
+    deriv = get_deriv_func(func)
+    eps = epsilon(dtype)
+    zero = tf.constant(0, dtype)
+    scale = tf.constant(scale, dtype)
 
-    dtype = tk.common_dtype([v, x])
-    shape = tf.shape(v * x)
+    out_is_finite = tf.math.is_finite(v) & tf.math.is_finite(x)
+    out_is_finite &= x > 0
+    if m % 2 == 1:
+        out_is_finite &= v > 0
 
-    condzero = tf.zeros(shape, tf.bool) if m % 2 == 0 else tf.equal(v, 0)
-    condinf = tf.equal(x, 0)
-    condnan = x < 0
+    deriv_at_zero_is_positive = out_is_finite
+    if m == 0:
+        deriv_at_zero_is_positive &= tf.math.square(v) + m > x
 
-    if mask is None:
-        mask = tf.ones(shape, tf.bool)
-    mask &= ~condzero & ~condinf & ~condnan
+    start = tf.zeros(shape, dtype)
+    delta = tf.where(deriv_at_zero_is_positive, scale, zero)
+    start, delta = extend(deriv, start, delta)
+    tp = find_zero(func, start, delta, tol, max_iter)
 
-    eps = tk.epsilon(dtype)
-    zero = tf.zeros(shape, dtype)
-    scale = tf.cast(dt0, dtype)
+    th = func(tp) + tf.math.log(eps) - tol
+    mfunc = lambda t: func(t) - th
+    tpl = tf.math.maximum(tp - bins * eps, zero)
+    tpr = tf.math.maximum(tp + bins * eps, tp + (1 + bins * eps))
+    mfunc_at_zero_is_negative = out_is_finite & (mfunc(tpr) < 0)
+    mfunc_at_tpr_is_positive = out_is_finite & (mfunc(tpr) > 0)
 
-    zero_peak = tf.zeros(shape, tf.bool) if m > 0 else tf.square(v) + m < x
-    dt = tf.where(~zero_peak & mask, scale, zero)
-    tp = find_peak(func, zero, dt, tol, max_iter)
-    th = func(tp) + tk.log(eps) - tol
+    start = tf.zeros(shape, dtype)
+    delta = tf.where(mfunc_at_zero_is_negative, tpl, zero)
+    t0 = find_zero(mfunc, start, delta, tol, max_iter)
 
-    tpm = tp - bins * eps
-    tpm_positive = tpm > 0
-    tpm = tf.where(tpm_positive & mask, tpm, zero)
-    t0 = find_zero(func_mth, zero, tpm, tol, max_iter)
+    start = tpr
+    delta = tf.where(mfunc_at_tpr_is_positive, scale, zero)
+    t1 = find_zero(mfunc, start, delta, tol, max_iter)
 
-    tpp = tk.maximum(tp + bins * eps, tp * (1 + bins * eps))
-    zero_exists = func_mth(tpp) > 0
-    dt = tf.where(zero_exists & mask, scale, zero)
-    t1 = find_zero_with_extend(func_mth, tpp, dt, tol, max_iter)
-
-    def funcb(b):
-        a = (2 * b + 1) / (2 * bins)
-        t = (1 - a) * t0 + a * t1
-        return func(t)
-
-    def cond(b, fmax, out):
-        return b < bins
-
-    def loop(b, fmax, out):
-        b += 1
-        ft = funcb(b)
-        out = tf.where(
-            fmax > ft, out + tf.exp(ft - fmax), out * tk.exp(fmax - ft) + 1
-        )
-        fmax = tf.where(fmax > ft, fmax, ft)
-        return b, fmax, out
-
-    init = tf.cast(0, dtype), funcb(0), tf.ones(shape, dtype)
-    b, fmax, out = tf.while_loop(cond, loop, init)
-    h = (t1 - t0) / bins
-    out = tk.log(h) + fmax + tk.log(out)
-
-    out = tf.where(condzero, tf.cast(-tk.inf, dtype), out)
-    out = tf.where(condinf, tf.cast(tk.inf, dtype), out)
-    out = tf.where(condnan, tf.cast(tk.nan, dtype), out)
-    return out
+    return log_integrate(func, t0, t1, bins)

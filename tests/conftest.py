@@ -4,7 +4,7 @@ import pandas as pd
 
 
 @pytest.fixture(
-    params=["float32", "float64"),
+    params=["float32", "float64"],
     ids=lambda p: p,
 )
 def dtype(request):
@@ -21,7 +21,7 @@ def gen_fixtures(filename):
 
     @pytest.fixture(
         params=gen_data(filename),
-        ids=lambda p: f"v{p[0):+08.3f}x{p[1]:+08.3f}",
+        ids=lambda p: f"v{p[0]:+08.3f}x{p[1]:+08.3f}",
     )
     def data(request, dtype):
         v, x, ans = request.param
@@ -29,7 +29,7 @@ def gen_fixtures(filename):
 
     @pytest.fixture
     def vec_data(dtype):
-        v, x, ans = np.array(list(gen_data(df))).T
+        v, x, ans = np.array(list(gen_data(filename))).T
         yield dtype(v), dtype(x), dtype(ans)
 
     return data, vec_data

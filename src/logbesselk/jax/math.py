@@ -5,7 +5,7 @@ import jax.numpy as jnp
 
 __all__ = [
     "sinhc",
-    "log_sink",
+    "log_sinh",
     "log_cosh",
 ]
 

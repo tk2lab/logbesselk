@@ -22,11 +22,13 @@ def log_bessel_k_naive(v, x):
     c = (1 / 2) * math.log((1 / 2) * math.pi)
     p = jnp.hypot(v, x)
     q = jnp.square(v / p)
-    logr = jnp.log(calc_r(p, q, max_iter=100))
-    return c - (1 / 2) * jnp.log(p) - p + v * jnp.log((v + p) / x) + logr
+    r = (1 / 2) * jnp.log(p) + p
+    s = v * jnp.log((v + p) / x)
+    t = calc_sum_fpq(p, q, max_iter=100)
+    return c - r + s + jnp.log(t)
 
 
-def calc_r(p, q, max_iter):
+def calc_sum_fpq(p, q, max_iter):
     def cond(args):
         out, i, faci, pi, diff = args
         return jnp.abs(diff) > eps * jnp.abs(out)
@@ -36,10 +38,10 @@ def calc_r(p, q, max_iter):
         diff = poly(faci, i + 1, q) / pi
         return out + diff, i + 1, update_factor(faci, i), pi * p, diff
 
-    dtype = jnp.result_type(p, q)
+    dtype = jnp.result_type(p, q).type
     eps = jnp.finfo(dtype).eps
-    zero = jnp.asarray(0, dtype)
-    one = jnp.asarray(1, dtype)
+    zero = dtype(0)
+    one = dtype(1)
     faci = jnp.asarray([1] + [0] * (max_iter - 1), dtype)
     return lax.while_loop(cond, body, (zero, 0, faci, one, one))[0]
 

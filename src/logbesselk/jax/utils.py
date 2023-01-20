@@ -42,9 +42,8 @@ def find_zero(func, x0, dx, tol: float, max_iter: int):
         x1, f1 = lax.cond(cond, lambda: (x0, f0), lambda: (x1, f1))
         x0, f0 = x_shrink, f_shrink
 
-        dx = x1 - x0
         diff = -f0 / deriv(x0)
-        ddx = diff / dx
+        ddx = diff / (x1 - x0)
         cond = (0 < ddx) & (ddx < 1)
         x_newton = lax.cond(cond, lambda: x0 + diff, lambda: x0)
         f_newton = func(x_newton)

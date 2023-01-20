@@ -28,7 +28,7 @@ def log_bessel_k(v, x):
 def log_bessel_ku(u, x):
     def cond(args):
         si, ri, i, bi, ci, di, fp, fi, gi, hi = args
-        return (i < max_iter) * (jnp.abs(di * hi) > eps * jnp.abs(si))
+        return (i < max_iter) * (jnp.abs(di * hi) >= eps * jnp.abs(si))
 
     def body(args):
         si, ri, i, bi, ci, di, fp, fi, gi, hi = args
@@ -66,7 +66,7 @@ def log_bessel_ku(u, x):
     s1 = 1 + d1 * h1
 
     init = s1, r1, i, b1, c1, d1, f0, f1, g1, h1
-    sn, rn, counter, *_ = lax.while_loop(cond, body, init)
+    sn, rn, *_ = lax.while_loop(cond, body, init)
     log_ku = (1 / 2) * jnp.log((1 / 2) * math.pi / x) - x - jnp.log(sn)
     log_kup1 = log_ku + jnp.log(((1 / 2) + u + x - a1 * rn) / x)
     return log_ku, log_kup1

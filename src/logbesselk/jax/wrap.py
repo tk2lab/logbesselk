@@ -8,7 +8,7 @@ __all__ = [
     "wrap_log_bessel_k",
     "wrap_log_abs_deriv_bessel_k",
     "wrap_bessel_ke",
-    "wrap_bessel_k_ratio",
+    "wrap_bessel_kratio",
 ]
 
 
@@ -16,13 +16,14 @@ def wrap_log_bessel_k(func):
     @functools.wraps(func)
     def wrapped_func(v, x):
         dtype = jnp.result_type(v, x, jnp.float32).type
+        v = jnp.abs(v)
         return lax.cond(
-            x == 0,
-            lambda: dtype(jnp.inf),
+            x > 0,
+            lambda: func(v, x),
             lambda: lax.cond(
                 x < 0,
                 lambda: dtype(jnp.nan),
-                lambda: func(jnp.abs(v), x),
+                lambda: dtype(jnp.inf),
             ),
         )
 
@@ -49,20 +50,17 @@ def wrap_log_abs_deriv_bessel_k(func):
         if n < 0:
             raise ValueError()
         dtype = jnp.result_type(v, x, jnp.float32).type
+        v = jnp.abs(v)
         return lax.cond(
-            x == 0,
-            lambda: dtype(jnp.inf),
+            (x > 0) if m % 2 == 0 else (x > 0) & (v > 0),
+            lambda: func(v, x, m, n),
             lambda: lax.cond(
                 x < 0,
                 lambda: dtype(jnp.nan),
-                lambda: (
-                    lax.cond(
-                        v == 0,
-                        lambda: dtype(-jnp.inf),
-                        lambda: func(jnp.abs(v), x, m, n),
-                    )
-                    if m % 2 == 1
-                    else func(jnp.abs(v), x, m, n)
+                lambda: lax.cond(
+                    x == 0,
+                    lambda: dtype(jnp.inf),
+                    lambda: dtype(-jnp.inf),
                 ),
             ),
         )
@@ -87,7 +85,7 @@ def wrap_bessel_ke(log_bessel_k, v, x):
     return jnp.exp(logk + x)
 
 
-def wrap_bessel_k_ratio(log_bessel_k, v, x, d=1):
+def wrap_bessel_kratio(log_bessel_k, v, x, d=1):
     logk = log_bessel_k(v, x)
     logkd = log_bessel_k(v + d, x)
     return jnp.exp(logkd - logk)

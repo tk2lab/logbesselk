@@ -1,15 +1,46 @@
+import numpy as np
 import tensorflow as tf
 
-from . import math as tk
-
 __all__ = [
+    "result_shape",
+    "result_type",
+    "epsilon",
     "get_deriv_func",
-    "find_peak",
+    "extend",
     "find_zero",
-    "fond_zero_with_extend",
-    "log_bessel_recurrence",
-    "wrap_log_k",
+    "log_integrate",
 ]
+
+
+def result_shape(*args):
+    x = args[0]
+    for a in args[1:]:
+        x *= a
+    return tf.shape(x)
+
+
+def as_numpy_dtype(dtype):
+    dtype = tf.as_dtype(dtype)
+    if hasattr(dtype, "as_numpy_dtype"):
+        return dtype.as_numpy_dtype
+    return dtype
+
+
+def result_type(*args, dtype_hint=None):
+    args = tf.nest.flatten(args)
+    dtype = None
+    for i, a in enumerate(args):
+        if hasattr(a, "dtype") and a.dtype:
+            dt = as_numpy_dtype(a.dtype)
+            if dtype is None:
+                dtype = dt
+            elif dtype != dt:
+                dtype = np.ones([2], dtype) * np.ones([2], dt).dtype
+    return dtype_hint if dtype is None else tf.as_dtype(dtype)
+
+
+def epsilon(dtype):
+    return np.finfo(dtype.as_numpy_dtype).eps
 
 
 def get_deriv_func(func, i=0):
@@ -22,37 +53,7 @@ def get_deriv_func(func, i=0):
     return deriv
 
 
-def find_peak(func, x0, dx, tol, max_iter):
-    deriv = get_deriv_func(func)
-    dtype = tk.common_dtype([x0, dx], tf.float32)
-    x0 = tf.convert_to_tensor(x0, dtype)
-    dx = tf.convert_to_tensor(dx, dtype)
-    tol = tf.convert_to_tensor(tol, dtype)
-    max_iter = tf.convert_to_tensor(max_iter, tf.int32)
-    ts, te = _extend(deriv, x0, dx)
-    return _find_zero(deriv, te, ts, tol, max_iter)[0]
-
-
-def find_zero(func, x0, x1, tol, max_iter):
-    dtype = tk.common_dtype([x0, x1], tf.float32)
-    x0 = tf.convert_to_tensor(x0, dtype)
-    x1 = tf.convert_to_tensor(x1, dtype)
-    tol = tf.convert_to_tensor(tol, dtype)
-    max_iter = tf.convert_to_tensor(max_iter, tf.int32)
-    return _find_zero(func, x0, x1, tol, max_iter)[0]
-
-
-def find_zero_with_extend(func, x0, dx, tol, max_iter):
-    dtype = tk.common_dtype([x0, dx], tf.float32)
-    x0 = tf.convert_to_tensor(x0, dtype)
-    dx = tf.convert_to_tensor(dx, dtype)
-    tol = tf.convert_to_tensor(tol, dtype)
-    max_iter = tf.convert_to_tensor(max_iter, tf.int32)
-    ts, te = _extend(func, x0, dx)
-    return _find_zero(func, te, ts, tol, max_iter)[0]
-
-
-def _extend(func, x0, dx):
+def extend(func, x0, dx):
     def cond(x, d, f1):
         return tf.reduce_any(~tf.equal(dx, 0) & (f1 > 0))
 
@@ -64,69 +65,58 @@ def _extend(func, x0, dx):
 
     init = x0, dx, tf.ones_like(x0)
     x, d, _ = tf.while_loop(cond, body, init)
-    return x, x + d
+    return x, d
 
 
-def _find_zero(func, x0, x1, tol, max_iter):
-    def cond(x0, x1, f0, f1):
-        return tf.reduce_any(~tf.equal(x0, x1) & (tk.abs(f0) > tol))
+def find_zero(func, x0, dx, tol, max_iter):
+    def cond(x0, x1):
+        f0 = func(x0)
+        return tf.reduce_any(~tf.equal(x0, x1) & (tf.math.abs(f0) > tol))
 
-    def body(x0, x1, f0, f1):
+    def body(x0, x1):
+        f0 = func(x0)
+        f1 = func(x1)
+
         x_shrink = x0 + 0.5 * (x1 - x0)
         f_shrink = func(x_shrink)
+        cond = f_shrink * f0 < 0
+        x0, x1 = x_shrink, tf.where(cond, x0, x1)
+        f0, f1 = f_shrink, tf.where(cond, f0, f1)
 
-        dx = -f0 / deriv(x0) / (x1 - x0)
-        dx_in_range = (0.0 < dx) & (dx < 0.5)
-        x_newton = tf.where(dx_in_range, x0 + dx * (x1 - x0), x0)
+        diff = -f0 / deriv(x0)
+        ddx = diff / (x1 - x0)
+        dx_in_range = (0 < ddx) & (ddx < 1)
+        x_newton = tf.where(dx_in_range, x0 + diff, x0)
         f_newton = func(x_newton)
+        x0, x1 = x_newton, tf.where(f_newton * f0 < 0, x0, x1)
 
-        c_shrink = f_shrink < 0
-        c_newton = f_newton < 0
-        x0_new = tf.where(c_shrink, x_shrink, tf.where(c_newton, x_newton, x0))
-        f0_new = tf.where(c_shrink, f_shrink, tf.where(c_newton, f_newton, f0))
-        x1_new = tf.where(c_shrink, x1, tf.where(c_newton, x_shrink, x_newton))
-        f1_new = tf.where(c_shrink, f1, tf.where(c_newton, f_shrink, f_newton))
-        return x0_new, x1_new, f0_new, f1_new
+        return x0, x1
 
     deriv = get_deriv_func(func)
-    init = x0, x1, func(x0), func(x1)
+    init = x0, x1
     return tf.while_loop(cond, body, init, maximum_iterations=max_iter)
 
 
-def log_bessel_recurrence(log_ku, log_kup1, u, n, x, mask=None):
-    def cond(ki, kj, ui, ni):
-        should_update = ni > 0
-        if mask is not None:
-            should_update &= mask
-        return tf.reduce_any(should_update)
+def log_integrate(func, t0, t1, bins):
+    def cond(fmax, fsum, i):
+        return True
 
-    def body(ki, kj, ui, ni):
-        uj = ui + 1
-        nj = ni - 1
-        kk = tk.log_add_exp(ki, kj + tk.log(2 * uj / x))
-        k0 = tf.where(ni > 0, kj, ki)
-        k1 = tf.where(ni > 0, kk, kj)
-        return k0, k1, uj, nj
+    def body(fmax, fsum, i):
+        a = (2 * i + 1) / (2 * bins)
+        t = (1 - a) * t0 + a * t1
+        ft = func(t)
+        diff = ft - fmax
+        fsum = fsum + tf.math.exp(diff)
+        update_fmax = diff > 0
+        fsum = tf.where(update_fmax, fsum * tf.math.exp(-diff) + 1, fsum)
+        fmax = tf.where(update_fmax, ft, fmax)
+        return fmax, fsum, i + 1
 
-    init = log_ku, log_kup1, u, n
-    return tf.while_loop(cond, body, init)[:2]
-
-
-def wrap_log_k(native_log_k):
-    def wraped_log_k(v, x, name=None):
-        @tf.custom_gradient
-        def _log_K_custom_gradient(v, x):
-            return native_log_k(v, x), _log_K_grad
-
-        def _log_K_grad(u):
-            logkv = _log_K_custom_gradient(v, x)
-            logkvm1 = _log_K_custom_gradient(v - 1, x)
-            dlogkvdx = -v / x - tk.exp(logkvm1 - logkv)
-            return None, u * dlogkvdx
-
-        with tf.name_scope(name or "bessel_K"):
-            x = tf.convert_to_tensor(x)
-            v = tf.convert_to_tensor(v, x.dtype)
-            return _log_K_custom_gradient(v, x)
-
-    return wraped_log_k
+    shape = result_shape(t0, t1)
+    dtype = result_type(t0, t1)
+    zero = tf.constant(0, dtype)
+    bins = tf.constant(bins, dtype)
+    bins = tf.where(tf.equal(t0, t1), zero, bins)
+    init = tf.zeros(shape, dtype), tf.zeros(shape, dtype), zero
+    fmax, fsum, _ = tf.while_loop(cond, body, init)
+    h = tf.math.abs(t1 - t0) / bins

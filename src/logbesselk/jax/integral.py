@@ -7,13 +7,13 @@ from .math import log_sinh
 from .utils import extend
 from .utils import find_zero
 from .utils import log_integrate
-from .wrap import wrap_bessel_k_ratio
 from .wrap import wrap_bessel_ke
+from .wrap import wrap_bessel_kratio
 from .wrap import wrap_log_abs_deriv_bessel_k
 
 __all__ = [
     "log_bessel_k",
-    "bessel_k_ratio",
+    "bessel_kratio",
     "bessel_ke",
     "log_abs_deriv_bessel_k",
 ]
@@ -29,8 +29,8 @@ def log_bessel_k(v, x):
     return log_abs_deriv_bessel_k(v, x)
 
 
-def bessel_k_ratio(v, x, d: int = 1):
-    return wrap_bessel_k_ratio(log_bessel_k, v, x, d)
+def bessel_kratio(v, x, d: int = 1):
+    return wrap_bessel_kratio(log_bessel_k, v, x, d)
 
 
 def bessel_ke(v, x):
@@ -74,7 +74,7 @@ def log_abs_deriv_bessel_k(v, x, m: int = 0, n: int = 0):
 
     start = zero
     delta = lax.cond(deriv_at_zero_is_positive, lambda: scale, lambda: zero)
-    start, dt = extend(deriv, start, delta)
+    start, delta = extend(deriv, start, delta)
     tp = find_zero(deriv, start, delta, tol, max_iter)
 
     th = func(tp) + jnp.log(eps) - tol

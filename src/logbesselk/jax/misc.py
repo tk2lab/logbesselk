@@ -3,13 +3,13 @@ import jax.numpy as jnp
 
 __all__ = [
     "log_bessel_recurrence",
-    "sign_bessel_k_deriv",
+    "sign_deriv_bessel_k",
 ]
 
 
-def sign_bessel_k_deriv(v, x, m=0, n=0):
+def sign_deriv_bessel_k(v, x, m=0, n=0):
     dtype = jnp.result_type(v, x)
-    sign = jnp.asarray(1, dtype)
+    sign = dtype(1)
     if n % 2 == 1:
         sign * -1
     if m % 2 == 0:

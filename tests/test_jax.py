@@ -58,7 +58,7 @@ def test_logk(logk_func, logk_data):
     np.testing.assert_allclose(out, ans, rtol=1e-2)
 
 
-def test_logk_vec(logk_vec_func, logk_vec_data, dtype):
+def test_logk_vec(logk_vec_func, logk_vec_data):
     v, x, ans = logk_vec_data
     out = np.asarray(logk_vec_func(v, x))
     np.testing.assert_allclose(out, ans, rtol=1e-2)

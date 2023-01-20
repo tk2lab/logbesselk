@@ -41,7 +41,7 @@ python =
     3.10: py310-tf29, py310-tf211
     3.11: py311-jax3, py311-jax4
 
-[testenv:py{38,39,310,311,}-tf{26,27,28,29,210,211}]
+[testenv:py{38,39,310,}-tf{26,27,28,29,210,211}]
 deps =
     tf26: tensorflow (>=2.6,<2.7)
     tf27: tensorflow (>=2.7,<2.8)
@@ -52,7 +52,7 @@ deps =
     pytest
     pandas
 commands =
-    {envpython} -m pytest tests --ignore-glob=tests/test_jax_*.py
+    {envpython} -m pytest -v -x tests/test_tensorflow.py
 
 [testenv:py{38,39,310,311,}-jax{3,4}]
 deps =
@@ -63,7 +63,7 @@ deps =
 install_command =
     pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
 commands =
-    {envpython} -m pytest tests --ignore-glob=tests/test_tf_*.py
+    {envpython} -m pytest -v -x tests/test_jax.py
 
 [testenv:lint]
 skip_install = True

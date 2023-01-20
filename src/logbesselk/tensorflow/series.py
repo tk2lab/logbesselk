@@ -1,31 +1,33 @@
 import tensorflow as tf
 
-from . import math as tk
-from .utils import log_bessel_recurrence
-from .utils import wrap_log_k
+from .math import sinc
+from .math import sinhc
+from .misc import log_bessel_recurrence
+from .utils import epsilon
+from .utils import result_shape
+from .utils import result_type
+from .wrap import wrap_log_bessel_k
 
 __all__ = [
     "log_bessel_k",
 ]
 
 
-@wrap_log_k
+@wrap_log_bessel_k
 def log_bessel_k(v, x):
-    v = tk.abs(v)
-    n = tk.round(v)
-    u = v - n
-    log_ku, log_kup1 = _log_bessel_ku(u, x)
-    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
-
-
-def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
     """
     N.M. Temme.
     On the numerical evaluation of the modified Bessel function
     of the third kind.
     Journal of Coumputational Physics, 19, 324-337 (1975).
     """
+    n = tf.math.round(v)
+    u = v - n
+    log_ku, log_kup1 = log_bessel_ku(u, x)
+    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
 
+
+def log_bessel_ku(u, x):
     def calc_gamma(u):
         factor = [
             +1.8437405873009050,
@@ -44,7 +46,7 @@ def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
             -0.0000000000001356,
             -0.00000000000000149,
         ]
-        w = 16 * tk.square(u) - 2
+        w = 16 * tf.math.square(u) - 2
         coef = [None, None]
         for s in range(2):
             prev, curr = 0, 0
@@ -53,50 +55,38 @@ def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
             coef[s] = (1 / 2) * (w * curr + factor[s]) - prev
         return coef
 
-    def cond(ki, li, i, ci, pi, qi, fi):
-        nonzero_update = tk.abs(ci * fi) > tol * tk.abs(ki)
-        if mask is not None:
-            nonzero_update &= mask
-        return tf.reduce_any(nonzero_update)
+    def cond(si, li, i, di, pi, qi, hi):
+        nonzero_update = tf.math.abs(di * hi) >= eps * tf.math.abs(si)
+        return tf.math.reduce_any(nonzero_update)
 
-    def body(ki, li, i, ci, pi, qi, fi):
+    def body(si, li, i, di, pi, qi, hi):
         j = i + 1
-        cj = ci * tk.square(x / 2) / j
+        dj = di * tf.math.square(x / 2) / j
         pj = pi / (j - u)
         qj = qi / (j + u)
-        fj = (j * fi + pi + qi) / (tk.square(j) - tk.square(u))
-        kj = ki + cj * fj
-        lj = li + cj * (pj - j * fj)
-        return kj, lj, j, cj, pj, qj, fj
+        hj = (j * hi + pi + qi) / (tf.math.square(j) - tf.math.square(u))
+        sj = si + dj * hj
+        lj = li + dj * (pj - j * hj)
+        return sj, lj, j, dj, pj, qj, hj
 
-    x = tf.convert_to_tensor(x)
-    u = tf.convert_to_tensor(u, x.dtype)
-    if mask is not None:
-        mask = tf.convert_to_tensor(mask, tf.bool)
+    max_iter = 100
 
-    tol = tk.epsilon(x.dtype)
+    shape = result_shape(u, x)
+    dtype = result_type(u, x)
+    eps = epsilon(dtype)
+
     gp, gm = calc_gamma(u)
-    lxh = tk.log(x / 2)
+    lxh = tf.math.log(x / 2)
     mu = u * lxh
 
-    i = tf.cast(0, x.dtype)
-    c0 = tf.ones_like(u * x)
-    p0 = (1 / 2) * tk.exp(-mu) / (gp - u * gm)
-    q0 = (1 / 2) * tk.exp(mu) / (gp + u * gm)
-    f0 = (gm * tk.cosh(mu) - gp * lxh * tk.sinhc(mu)) / tk.sinc(u)
-    k0 = c0 * f0
-    l0 = c0 * (p0 - i * f0)
-    init = k0, l0, i, c0, p0, q0, f0
+    i = tf.constant(0, dtype)
+    d0 = tf.ones(shape, dtype)
+    p0 = (1 / 2) * tf.math.exp(-mu) / (gp - u * gm)
+    q0 = (1 / 2) * tf.math.exp(mu) / (gp + u * gm)
+    h0 = (gm * tf.math.cosh(mu) - gp * lxh * sinhc(mu)) / sinc(u)
+    s0 = d0 * h0
+    l0 = d0 * (p0 - i * h0)
 
-    ku, kn, counter, *_ = tf.while_loop(
-        cond,
-        body,
-        init,
-        maximum_iterations=max_iter,
-    )
-    log_ku, log_kup1 = tk.log(ku), tk.log(kn) - lxh
-
-    if return_counter:
-        return log_ku, log_kup1, counter
-
-    return log_ku, log_kup1
+    init = s0, l0, i, d0, p0, q0, h0
+    ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=max_iter)
+    return tf.math.log(ku), tf.math.log(kn) - lxh
