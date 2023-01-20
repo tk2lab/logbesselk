@@ -2,11 +2,25 @@ import jax
 import jax.lax as lax
 import jax.numpy as jnp
 
+from .math import exp
+from .math import fabs
+from .math import log
+
 __all__ = [
+    "result_type",
+    "epsilon",
     "extend",
     "find_zero",
     "log_integrate",
 ]
+
+
+def result_type(*args):
+    return jnp.result_type(*args, jnp.float32).type
+
+
+def epsilon(dtype):
+    return jnp.finfo(dtype).eps
 
 
 def extend(func, x0, dx):
@@ -29,7 +43,7 @@ def find_zero(func, x0, dx, tol: float, max_iter: int):
     def cond(args):
         x0, x1, i = args
         f0 = func(x0)
-        return (i < max_iter) & (x0 != x1) & (jnp.abs(f0) > tol)
+        return (i < max_iter) & (x0 != x1) & (fabs(f0) > tol)
 
     def body(args):
         x0, x1, i = args
@@ -44,8 +58,8 @@ def find_zero(func, x0, dx, tol: float, max_iter: int):
 
         diff = -f0 / deriv(x0)
         ddx = diff / (x1 - x0)
-        cond = (0 < ddx) & (ddx < 1)
-        x_newton = lax.cond(cond, lambda: x0 + diff, lambda: x0)
+        dx_in_range = (0 < ddx) & (ddx < 1)
+        x_newton = lax.cond(dx_in_range, lambda: x0 + diff, lambda: x0)
         f_newton = func(x_newton)
         x1 = lax.cond(f_newton * f0 < 0, lambda: x0, lambda: x1)
         x0 = x_newton
@@ -58,7 +72,7 @@ def find_zero(func, x0, dx, tol: float, max_iter: int):
 def log_integrate(func, t0, t1, bins: int):
     def cond(args):
         fmax, fsum, i = args
-        return i <= bins
+        return i < bins
 
     def body(args):
         fmax, fsum, i = args
@@ -68,14 +82,14 @@ def log_integrate(func, t0, t1, bins: int):
         diff = ft - fmax
         fmax, fsum = lax.cond(
             diff < 0,
-            lambda: (fmax, fsum + jnp.exp(diff)),
-            lambda: (ft, fsum * jnp.exp(-diff) + 1),
+            lambda: (fmax, fsum + exp(diff)),
+            lambda: (ft, fsum * exp(-diff) + 1),
         )
         return fmax, fsum, i + 1
 
-    dtype = jnp.result_type(t0, t1, jnp.float32).type
+    dtype = result_type(t0, t1)
     bins = lax.cond(t0 == t1, lambda: jnp.int32(0), lambda: jnp.int32(bins))
     init = dtype(0), dtype(0), jnp.int32(0)
     fmax, fsum, _ = lax.while_loop(cond, body, init)
-    h = jnp.abs(t1 - t0) / bins
-    return fmax + jnp.log(fsum) + jnp.log(h)
+    h = fabs(t1 - t0) / bins
+    return fmax + log(fsum) + log(h)

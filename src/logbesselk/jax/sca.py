@@ -1,10 +1,12 @@
 import jax.lax as lax
-import jax.numpy as jnp
 
 from .asymptotic import log_bessel_k_naive as log_k_large_v
 from .cfraction import log_bessel_ku as log_ku_large_x
+from .math import fround
+from .math import log
 from .misc import log_bessel_recurrence
 from .series import log_bessel_ku as log_ku_small_x
+from .utils import result_type
 from .wrap import wrap_bessel_ke
 from .wrap import wrap_bessel_kratio
 from .wrap import wrap_log_bessel_k
@@ -39,15 +41,15 @@ def log_bessel_k(v, x):
             )
             return log_ku_small_x(u_, x_)
 
-        n = jnp.round(v)
+        n = fround(v)
         u = v - n
         logk0, logk1 = lax.cond(large_x, large_x_case, small_x_case)
         return log_bessel_recurrence(logk0, logk1, u, n, x)[0]
 
-    dtype = jnp.result_type(v, x).type
+    dtype = result_type(v, x)
     finite = x > 0
     large_v_ = v >= 25
-    large_x_ = x >= 1.6 + (1 / 2) * jnp.log(v + 1)
+    large_x_ = x >= 1.6 + (1 / 2) * log(v + 1)
 
     large_v = finite & large_v_
     large_x = finite & ~large_v_ & large_x_

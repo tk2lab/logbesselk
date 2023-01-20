@@ -1,8 +1,16 @@
 import jax.lax as lax
-import jax.numpy as jnp
 
+from .math import cosh
+from .math import exp
+from .math import fabs
+from .math import fround
+from .math import log
+from .math import sinc
 from .math import sinhc
+from .math import square
 from .misc import log_bessel_recurrence
+from .utils import epsilon
+from .utils import result_type
 from .wrap import wrap_log_bessel_k
 
 __all__ = [
@@ -18,7 +26,7 @@ def log_bessel_k(v, x):
     of the third kind.
     Journal of Coumputational Physics, 19, 324-337 (1975).
     """
-    n = jnp.round(v)
+    n = fround(v)
     u = v - n
     log_ku, log_kup1 = log_bessel_ku(u, x)
     return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
@@ -43,7 +51,7 @@ def log_bessel_ku(u, x):
             -0.0000000000001356,
             -0.00000000000000149,
         ]
-        w = 16 * jnp.square(u) - 2
+        w = 16 * square(u) - 2
         coef = [None, None]
         for s in range(2):
             prev, curr = 0, 0
@@ -54,35 +62,35 @@ def log_bessel_ku(u, x):
 
     def cond(args):
         ki, li, i, ci, pi, qi, fi = args
-        return (i < max_iter) & (jnp.abs(ci * fi) >= eps * jnp.abs(ki))
+        return (i < max_iter) & (fabs(ci * fi) >= eps * fabs(ki))
 
     def body(args):
         ki, li, i, ci, pi, qi, fi = args
         j = i + 1
-        cj = ci * jnp.square(x / 2) / j
+        cj = ci * square(x / 2) / j
         pj = pi / (j - u)
         qj = qi / (j + u)
-        fj = (j * fi + pi + qi) / (jnp.square(j) - jnp.square(u))
+        fj = (j * fi + pi + qi) / (square(j) - square(u))
         kj = ki + cj * fj
         lj = li + cj * (pj - j * fj)
         return kj, lj, j, cj, pj, qj, fj
 
     max_iter = 100
 
-    dtype = jnp.result_type(u, x).type
-    eps = jnp.finfo(dtype).eps
+    dtype = result_type(u, x)
+    eps = epsilon(dtype)
 
     gp, gm = calc_gamma(u)
-    lxh = jnp.log(x / 2)
+    lxh = log(x / 2)
     mu = u * lxh
 
     i = 0
     c0 = dtype(1)
-    p0 = (1 / 2) * jnp.exp(-mu) / (gp - u * gm)
-    q0 = (1 / 2) * jnp.exp(+mu) / (gp + u * gm)
-    f0 = (gm * jnp.cosh(mu) - gp * lxh * sinhc(mu)) / jnp.sinc(u)
+    p0 = (1 / 2) * exp(-mu) / (gp - u * gm)
+    q0 = (1 / 2) * exp(+mu) / (gp + u * gm)
+    f0 = (gm * cosh(mu) - gp * lxh * sinhc(mu)) / sinc(u)
     k0 = c0 * f0
     l0 = c0 * (p0 - i * f0)
     init = k0, l0, i, c0, p0, q0, f0
     ku, kn, *_ = lax.while_loop(cond, body, init)
-    return jnp.log(ku), jnp.log(kn) - lxh
+    return log(ku), log(kn) - lxh

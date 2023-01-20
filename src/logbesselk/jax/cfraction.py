@@ -1,9 +1,14 @@
 import math
 
 import jax.lax as lax
-import jax.numpy as jnp
 
+from .math import fabs
+from .math import fround
+from .math import log
+from .math import square
 from .misc import log_bessel_recurrence
+from .utils import epsilon
+from .utils import result_type
 from .wrap import wrap_log_bessel_k
 
 __all__ = [
@@ -19,7 +24,7 @@ def log_bessel_k(v, x):
     and complex argument, to selected accuracy,
     Computer Physics Communications, 47, 245-257 (1987).
     """
-    n = jnp.round(v)
+    n = fround(v)
     u = v - n
     log_ku, log_kup1 = log_bessel_ku(u, x)
     return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
@@ -28,12 +33,12 @@ def log_bessel_k(v, x):
 def log_bessel_ku(u, x):
     def cond(args):
         si, ri, i, bi, ci, di, fp, fi, gi, hi = args
-        return (i < max_iter) * (jnp.abs(di * hi) >= eps * jnp.abs(si))
+        return (i < max_iter) * (fabs(di * hi) >= eps * fabs(si))
 
     def body(args):
         si, ri, i, bi, ci, di, fp, fi, gi, hi = args
         j = i + 1
-        aj = jnp.square(j - (1 / 2)) - jnp.square(u)
+        aj = square(j - (1 / 2)) - square(u)
         bj = 2 * (x + j)
 
         cj = 1 / (bj - aj * ci)
@@ -48,25 +53,25 @@ def log_bessel_ku(u, x):
 
     max_iter = 100
 
-    dtype = jnp.result_type(u, x)
-    eps = jnp.finfo(dtype).eps
+    dtype = result_type(u, x)
+    eps = epsilon(dtype)
 
     i = 1
-    a1 = (1 / 4) - jnp.square(u)
+    a1 = (1 / 4) - square(u)
     b1 = 2 * x + 2
 
     c1 = 1 / b1
     d1 = 1 / b1
     r1 = d1
 
-    f0 = jnp.asarray(0, dtype)
-    f1 = jnp.asarray(1, dtype)
+    f0 = dtype(0)
+    f1 = dtype(1)
     g1 = a1
     h1 = f1 * g1
     s1 = 1 + d1 * h1
 
     init = s1, r1, i, b1, c1, d1, f0, f1, g1, h1
     sn, rn, *_ = lax.while_loop(cond, body, init)
-    log_ku = (1 / 2) * jnp.log((1 / 2) * math.pi / x) - x - jnp.log(sn)
-    log_kup1 = log_ku + jnp.log(((1 / 2) + u + x - a1 * rn) / x)
+    log_ku = (1 / 2) * log((1 / 2) * math.pi / x) - x - log(sn)
+    log_kup1 = log_ku + log(((1 / 2) + u + x - a1 * rn) / x)
     return log_ku, log_kup1
