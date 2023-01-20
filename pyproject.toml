@@ -22,6 +22,11 @@ profile = "black"
 [tool.black]
 line-length = 79
 
+[tool.pytest.ini_options]
+markers = [
+    "vec",
+]
+
 [tool.tox]
 legacy_tox_ini = """
 [tox]
@@ -52,7 +57,7 @@ deps =
     pytest
     pandas
 commands =
-    {envpython} -m pytest -v -x tests/test_tensorflow.py
+    {envpython} -m pytest tests/test_tensorflow.py -m vec
 
 [testenv:py{38,39,310,311,}-jax{3,4}]
 deps =
@@ -63,7 +68,7 @@ deps =
 install_command =
     pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
 commands =
-    {envpython} -m pytest -v -x tests/test_jax.py
+    {envpython} -m pytest tests/test_jax.py -m vec
 
 [testenv:lint]
 skip_install = True
