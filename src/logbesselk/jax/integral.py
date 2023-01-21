@@ -1,69 +1,103 @@
-import jax
 import jax.lax as lax
 import jax.numpy as jnp
+from jax import grad
 
+from .math import cosh
+from .math import is_finite
+from .math import log
 from .math import log_cosh
 from .math import log_sinh
+from .math import maximum
+from .math import square
+from .utils import epsilon
 from .utils import extend
 from .utils import find_zero
 from .utils import log_integrate
-from .wrap import wrap_full
+from .utils import result_type
+from .wrap import wrap_bessel_ke
+from .wrap import wrap_bessel_kratio
+from .wrap import wrap_log_abs_deriv_bessel_k
 
 __all__ = [
     "log_bessel_k",
+    "bessel_ke",
+    "bessel_kratio",
+    "log_abs_deriv_bessel_k",
 ]
 
 
-@wrap_full
-def log_bessel_k(v, x, m: int = 0, n: int = 0):
+def log_bessel_k(v, x):
     """
     Takashi Takekawa,
     Fast parallel calculation of modified Bessel function
     of the second kind and its derivatives,
     SoftwareX, 17, 100923 (2022).
     """
+    return log_abs_deriv_bessel_k(v, x)
 
+
+def bessel_kratio(v, x, d: int = 1):
+    return wrap_bessel_kratio(log_bessel_k, v, x, d)
+
+
+def bessel_ke(v, x):
+    return wrap_bessel_ke(log_bessel_k, v, x)
+
+
+@wrap_log_abs_deriv_bessel_k
+def log_abs_deriv_bessel_k(v, x, m: int = 0, n: int = 0):
     def func(t):
+        out = -x * cosh(t)
         if m % 2 == 0:
-            out = log_cosh(v * t) - x * jnp.cosh(t)
+            out += log_cosh(v * t)
         else:
-            out = log_sinh(v * t) - x * jnp.cosh(t)
+            out += log_sinh(v * t)
         if m > 0:
-            out += m * jnp.log(t)
+            out += m * log(t)
         if n > 0:
             out += n * log_cosh(t)
         return out
 
-    dt0 = 0.1
+    scale = 0.1
     tol = 1.0
-    bins = 32
     max_iter = 10
+    bins = 32
 
-    dtype = jnp.result_type(v, x)
-    eps = jnp.finfo(dtype).eps
-    zero = jnp.zeros((), dtype)
-    scale = jnp.full((), dt0, dtype)
-    deriv = jax.grad(func)
+    dtype = result_type(v, x)
+    eps = epsilon(dtype)
+    zero = dtype(0)
+    scale = dtype(scale)
+    bins = jnp.int32(bins)
+    deriv = grad(func)
 
-    start = zero
-    dt = scale
+    out_is_finite = is_finite(v) & is_finite(x)
+    out_is_finite &= x > 0
+    if m % 2 == 1:
+        out_is_finite &= v > 0
+
+    deriv_at_zero_is_positive = out_is_finite
     if m == 0:
-        dt = lax.cond(jnp.square(v) + m < x, lambda: zero, lambda: dt)
-    start, dt = extend(deriv, start, dt)
-    tp = find_zero(deriv, start, dt, tol, max_iter)
-
-    th = func(tp) + jnp.log(eps) - tol
-    func_mth = lambda t: func(t) - th
+        deriv_at_zero_is_positive &= square(v) + m > x
 
     start = zero
-    dt = jnp.maximum(tp - bins * eps, 0)
-    dt = lax.cond(func_mth(start) > 0, lambda: zero, lambda: dt)
-    t0 = find_zero(func_mth, start, dt, tol, max_iter)
+    delta = lax.cond(deriv_at_zero_is_positive, lambda: scale, lambda: zero)
+    start, delta = extend(deriv, start, delta)
+    tp = find_zero(deriv, start, delta, tol, max_iter)
 
-    start = jnp.maximum(tp + bins * eps, tp * (1 + bins * eps))
-    dt = scale
-    dt = lax.cond(func_mth(start) < 0, lambda: zero, lambda: dt)
-    start, dt = extend(func_mth, start, dt)
-    t1 = find_zero(func_mth, start, dt, tol, max_iter)
+    th = func(tp) + log(eps) - tol
+    mfunc = lambda t: func(t) - th
+    tpl = maximum(tp - bins * eps, zero)
+    tpr = maximum(tp + bins * eps, tp * (1 + bins * eps))
+    mfunc_at_zero_is_negative = out_is_finite & (mfunc(zero) < 0)
+    mfunc_at_tpr_is_positive = out_is_finite & (mfunc(tpr) > 0)
+
+    start = zero
+    delta = lax.cond(mfunc_at_zero_is_negative, lambda: tpl, lambda: zero)
+    t0 = find_zero(mfunc, start, delta, tol, max_iter)
+
+    start = tpr
+    delta = lax.cond(mfunc_at_tpr_is_positive, lambda: scale, lambda: zero)
+    start, delta = extend(mfunc, start, delta)
+    t1 = find_zero(mfunc, start, delta, tol, max_iter)
 
     return log_integrate(func, t0, t1, bins)

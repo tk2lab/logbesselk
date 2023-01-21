@@ -1,80 +1,78 @@
 import math
 
-import numpy as np
 import tensorflow as tf
 
-from . import math as tk
-from .utils import wrap_log_k
+from .math import fabs
+from .math import log
+from .math import sqrt
+from .math import square
+from .utils import epsilon
+from .utils import result_shape
+from .utils import result_type
+from .wrap import wrap_log_bessel_k
 
 __all__ = [
     "log_bessel_k",
 ]
 
 
-@wrap_log_k
+@wrap_log_bessel_k
 def log_bessel_k(v, x):
-    return _log_bessel_k(v, x)
-
-
-def _log_bessel_k(v, x, mask=None, max_iter=30, return_counter=False):
     """
     Digital Library of Mathematical Functions: https://dlmf.nist.gov/10.41
     """
+    return log_bessel_k_naive(v, x)
 
-    def cond(target, i, pi, update):
-        if mask is not None:
-            update &= mask
-        return tf.reduce_any(update)
 
-    def body(target, i, pi, update):
-        def local_cond(ui, j):
-            return j >= 0
+def log_bessel_k_naive(v, x):
+    c = (1 / 2) * math.log((1 / 2) * math.pi)
+    p = sqrt(square(v) + square(x))
+    q = square(v) / (square(v) + square(x))
+    r = (1 / 2) * log(p) + p
+    s = v * log((v + p) / x)
+    t = calc_sum_fpq(p, q, max_iter=100)
+    return c - r + s + log(t)
 
-        def local_body(ui, j):
-            ui = ui * q + factor[i, j]
-            return ui, j - 1
 
-        ui = tf.zeros_like(v * x)
-        ui, _ = tf.while_loop(local_cond, local_body, (ui, i))
-        target = tf.where(update, target + ui / pi, target)
-        update &= tk.abs(ui / pi) > tol * tk.abs(target)
-        return target, i + 1, pi * p, update
+def calc_sum_fpq(p, q, max_iter):
+    def cond(out, fac, p, i, update):
+        return tf.math.reduce_any(update)
 
-    factor = np.zeros((max_iter, max_iter))
-    factor[0, 0] = 1
-    for i in range(max_iter - 1):
-        for j in range(i + 1):
-            k = i + 2 * j
-            a = (1 / 2) * k + (1 / 8) / (k + 1)
-            b = (1 / 2) * k + (5 / 8) / (k + 3)
-            factor[i + 1, j + 0] -= factor[i, j] * a
-            factor[i + 1, j + 1] += factor[i, j] * b
+    def body(outi, faci, pi, i, update):
+        diff = poly(faci, i, q) / pi
+        outj = outi + diff
+        outj = tf.where(update, outj, outi)
+        facj = update_factor(faci, i, max_iter)
+        pj = pi * p
+        j = i + 1
+        update &= fabs(diff) > eps * fabs(outj)
+        return outj, facj, pj, j, update
 
-    x = tf.convert_to_tensor(x)
-    v = tf.convert_to_tensor(v, x.dtype)
-    if mask is not None:
-        mask = tf.convert_to_tensor(mask, tf.bool)
+    shape = result_shape(p, q)
+    dtype = result_type(p, q)
+    eps = epsilon(dtype)
+    out0 = tf.zeros(shape, dtype)
+    fac0 = tf.constant([1] + [0] * (max_iter - 1), dtype)
+    p0 = tf.ones(shape, dtype)
+    index = tf.constant(0, tf.int32)
+    update = tf.ones(shape, tf.bool)
+    init = out0, fac0, p0, index, update
+    return tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
 
-    tol = tk.epsilon(x.dtype)
-    factor = tf.convert_to_tensor(factor, x.dtype)
-    p = tk.sqrt(tk.square(v) + tk.square(x))
-    q = tk.square(v) / (tk.square(v) + tk.square(x))
 
-    log_const = (1 / 2) * math.log((1 / 2) * math.pi)
-    log_const += v * tk.log((v + p) / x) - (1 / 2) * tk.log(p) - p
-    target = tf.zeros_like(v * x)
-    i = tf.cast(0, tf.int32)
-    pi = tf.ones_like(p)
-    update = tf.ones_like(v * x, tf.bool)
-    init = target, i, pi, update
-    target, counter, *_ = tf.while_loop(
-        cond,
-        body,
-        init,
-        maximum_iterations=max_iter,
-    )
-    results = log_const + tk.log(target)
+def update_factor(fac, i, size):
+    k = i + 2 * tf.range(size)
+    k = tf.cast(k, fac.dtype)
+    a = ((1 / 2) * k + (1 / 8) / (k + 1)) * fac
+    b = ((1 / 2) * k + (5 / 8) / (k + 3)) * fac
+    return tf.pad(b[:-1], [[1, 0]]) - a
 
-    if return_counter:
-        return results, i
-    return results
+
+def poly(fac, i, x):
+    def cond(out, j):
+        return j >= 0
+
+    def body(out, j):
+        return fac[j] + x * out, j - 1
+
+    return tf.while_loop(cond, body, (tf.zeros_like(x), i))[0]

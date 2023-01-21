@@ -1,4 +1,4 @@
-name: Build package
+name: Tox test
 
 on:
   push:
@@ -19,14 +19,14 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install tox
       run: |
-        pip install -U pip
-        pip install tox tox-gh-actions
+        python -m pip install --upgrade pip
+        python -m pip install tox tox-gh-actions
 
     - name: Run tox
-      run: tox
+      run: python -m tox -- -x -m vec

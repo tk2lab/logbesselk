@@ -1,102 +1,102 @@
 import tensorflow as tf
 
-from . import math as tk
-from .utils import log_bessel_recurrence
-from .utils import wrap_log_k
+from .math import cosh
+from .math import exp
+from .math import fabs
+from .math import fround
+from .math import log
+from .math import sinc
+from .math import sinhc
+from .math import square
+from .misc import log_bessel_recurrence
+from .utils import epsilon
+from .utils import result_shape
+from .utils import result_type
+from .wrap import wrap_log_bessel_k
 
 __all__ = [
     "log_bessel_k",
 ]
 
 
-@wrap_log_k
+@wrap_log_bessel_k
 def log_bessel_k(v, x):
-    v = tk.abs(v)
-    n = tk.round(v)
-    u = v - n
-    log_ku, log_kup1 = _log_bessel_ku(u, x)
-    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
-
-
-def _log_bessel_ku(u, x, mask=None, max_iter=100, return_counter=False):
     """
-    N.M. Temme.
+    N. M. Temme.
     On the numerical evaluation of the modified Bessel function
     of the third kind.
     Journal of Coumputational Physics, 19, 324-337 (1975).
     """
+    n = fround(v)
+    u = v - n
+    log_ku, log_kup1 = log_bessel_ku(u, x)
+    return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
 
-    def calc_gamma(u):
-        factor = [
-            +1.8437405873009050,
-            -1.1420226803711680,
-            -0.0768528408447867,
-            +0.0065165112670737,
-            +0.0012719271366546,
-            +0.0003087090173086,
-            -0.0000049717367042,
-            -0.0000034706269649,
-            -0.0000000331261198,
-            +0.0000000069437664,
-            +0.0000000002423096,
-            +0.0000000000367795,
-            -0.0000000000001702,
-            -0.0000000000001356,
-            -0.00000000000000149,
-        ]
-        w = 16 * tk.square(u) - 2
-        coef = [None, None]
-        for s in range(2):
-            prev, curr = 0, 0
-            for fac in reversed(factor[s + 2 :: 2]):
-                prev, curr = curr, w * curr + fac - prev
-            coef[s] = (1 / 2) * (w * curr + factor[s]) - prev
-        return coef
 
-    def cond(ki, li, i, ci, pi, qi, fi):
-        nonzero_update = tk.abs(ci * fi) > tol * tk.abs(ki)
-        if mask is not None:
-            nonzero_update &= mask
-        return tf.reduce_any(nonzero_update)
+def log_bessel_ku(u, x):
+    def cond(ku, kn, i, p, q, r, s):
+        update = fabs(r * s) > eps * fabs(ku)
+        return (i < 10) | tf.math.reduce_any(update)
 
-    def body(ki, li, i, ci, pi, qi, fi):
-        j = i + 1
-        cj = ci * tk.square(x / 2) / j
-        pj = pi / (j - u)
-        qj = qi / (j + u)
-        fj = (j * fi + pi + qi) / (tk.square(j) - tk.square(u))
-        kj = ki + cj * fj
-        lj = li + cj * (pj - j * fj)
-        return kj, lj, j, cj, pj, qj, fj
+    def body(ku, kn, i, p, q, r, s):
+        i += 1
+        p, q, r, s = (
+            p / (i - u),
+            q / (i + u),
+            r * square(x / 2) / i,
+            (p + q + i * s) / (square(i) - square(u)),
+        )
+        ku += r * s
+        kn += r * (p - i * s)
+        return ku, kn, i, p, q, r, s
 
-    x = tf.convert_to_tensor(x)
-    u = tf.convert_to_tensor(u, x.dtype)
-    if mask is not None:
-        mask = tf.convert_to_tensor(mask, tf.bool)
+    max_iter = 100
 
-    tol = tk.epsilon(x.dtype)
+    shape = result_shape(u, x)
+    dtype = result_type(u, x)
+    eps = epsilon(dtype)
+
     gp, gm = calc_gamma(u)
-    lxh = tk.log(x / 2)
+    lxh = log(x / 2)
     mu = u * lxh
 
-    i = tf.cast(0, x.dtype)
-    c0 = tf.ones_like(u * x)
-    p0 = (1 / 2) * tk.exp(-mu) / (gp - u * gm)
-    q0 = (1 / 2) * tk.exp(mu) / (gp + u * gm)
-    f0 = (gm * tk.cosh(mu) - gp * lxh * tk.sinhc(mu)) / tk.sinc(u)
-    k0 = c0 * f0
-    l0 = c0 * (p0 - i * f0)
-    init = k0, l0, i, c0, p0, q0, f0
+    i = tf.constant(0, dtype)
+    p = (1 / 2) * exp(-mu) / (gp - u * gm)
+    q = (1 / 2) * exp(mu) / (gp + u * gm)
+    r = tf.ones(shape, dtype)
+    s = (gm * cosh(mu) - gp * lxh * sinhc(mu)) / sinc(u)
 
-    ku, kn, counter, *_ = tf.while_loop(
-        cond,
-        body,
-        init,
-        maximum_iterations=max_iter,
-    )
-    log_ku, log_kup1 = tk.log(ku), tk.log(kn) - lxh
+    ku = r * s
+    kn = r * (p - i * s)
 
-    if return_counter:
-        return log_ku, log_kup1, counter
+    init = ku, kn, i, p, q, r, s
+    ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=max_iter)
+    return log(ku), log(kn) - lxh
 
-    return log_ku, log_kup1
+
+def calc_gamma(u):
+    factor = [
+        +1.8437405873009050,
+        -1.1420226803711680,
+        -0.0768528408447867,
+        +0.0065165112670737,
+        +0.0012719271366546,
+        +0.0003087090173086,
+        -0.0000049717367042,
+        -0.0000034706269649,
+        -0.0000000331261198,
+        +0.0000000069437664,
+        +0.0000000002423096,
+        +0.0000000000367795,
+        -0.0000000000001702,
+        -0.0000000000001356,
+        -0.00000000000000149,
+    ]
+    w = 16 * square(u) - 2
+    coef = [None, None]
+    for s in range(2):
+        prev, curr = 0, 0
+        for fac in reversed(factor[s + 2 :: 2]):
+            prev, curr = curr, w * curr + fac - prev
+        coef[s] = (1 / 2) * (w * curr + factor[s]) - prev
+    return coef
