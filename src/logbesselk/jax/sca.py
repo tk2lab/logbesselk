@@ -30,11 +30,11 @@ def log_bessel_k(v, x):
         return log_k_large_v(v_, x)
 
     def small_v_case():
-        def large_x_case():
+        def large_x_ku():
             u_ = lax.cond(large_x, lambda: u, lambda: dtype(1 / 2))
             return log_ku_large_x(u_, x)
 
-        def small_x_case():
+        def small_x_ku():
             u_, x_ = lax.cond(
                 small_x,
                 lambda: (u, x),
@@ -44,7 +44,7 @@ def log_bessel_k(v, x):
 
         n = fround(v)
         u = v - n
-        logk0, logk1 = lax.cond(large_x, large_x_case, small_x_case)
+        logk0, logk1 = lax.cond(large_x, large_x_ku, small_x_ku)
         return log_bessel_recurrence(logk0, logk1, u, n, x)[0]
 
     dtype = result_type(v, x)
