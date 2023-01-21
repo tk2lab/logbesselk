@@ -39,7 +39,7 @@ def calc_sum_fpq(p, q, max_iter):
         return args[-1]
 
     def body(args):
-        outi, faci, pi, j, _ = args
+        outi, faci, pi, i, _ = args
         diff = poly(faci, i, q) / pi
         outj = outi + diff
         facj = update_factor(faci, i, max_iter)
