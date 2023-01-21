@@ -24,4 +24,6 @@ print(df[["diff", "rdiff", "absrdiff"]].describe())
 df.sort_values("condition", inplace=True)
 print("v^2/x < 100 case")
 print(df.query("condition < 100")[["diff", "rdiff", "absrdiff"]].describe())
-df.to_csv("eval/data/logk_tf_int_64.csv")
+
+os.makedirs("eval/results")
+df.to_csv("eval/results/logk_jax_int_64.csv")
