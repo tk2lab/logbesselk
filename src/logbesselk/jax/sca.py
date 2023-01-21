@@ -3,6 +3,7 @@ import jax.lax as lax
 from .asymptotic import log_bessel_k_naive as log_k_large_v
 from .cfraction import log_bessel_ku as log_ku_large_x
 from .math import fround
+from .math import is_finite
 from .math import log
 from .misc import log_bessel_recurrence
 from .series import log_bessel_ku as log_ku_small_x
