@@ -46,18 +46,32 @@ python =
     3.10: py310-tf29, py310-tf211
     3.11: py311-jax3, py311-jax4
 
-[testenv:py{38,39,310,}-tf{26,27,28,29,210,211}]
+[testenv:lint]
+skip_install = True
 deps =
-    tf26: tensorflow (>=2.6,<2.7)
-    tf27: tensorflow (>=2.7,<2.8)
-    tf28: tensorflow (>=2.8,<2.9)
-    tf29: tensorflow (>=2.9,<2.10)
-    tf210: tensorflow (>=2.10,<2.11)
-    tf211: tensorflow (>=2.11,<2.12)
-    pytest
+    isort
+    black
+    autoflake
+commands =
+    isort --sl src
+    autoflake -ri --remove-all-unused-imports --ignore-init-module-imports src
+    black src
+
+[testenv:eval_jax]
+deps =
+    jax[cuda]
+    pandas
+install_command =
+    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
+commands =
+    {envpython} eval/eval_jax.py
+
+[testenv:eval_tf]
+deps =
+    tensorflow
     pandas
 commands =
-    {envpython} -m pytest tests/test_tensorflow.py {posargs}
+    {envpython} eval/eval_tensorflow.py
 
 [testenv:py{38,39,310,311,}-jax{3,4}]
 deps =
@@ -70,30 +84,16 @@ install_command =
 commands =
     {envpython} -m pytest tests/test_jax.py {posargs}
 
-[testenv:eval_tf]
+[testenv:py{38,39,310,}-tf{26,27,28,29,210,211}]
 deps =
-    tensorflow
+    tf26: tensorflow (>=2.6,<2.7)
+    tf27: tensorflow (>=2.7,<2.8)
+    tf28: tensorflow (>=2.8,<2.9)
+    tf29: tensorflow (>=2.9,<2.10)
+    tf210: tensorflow (>=2.10,<2.11)
+    tf211: tensorflow (>=2.11,<2.12)
+    pytest
     pandas
 commands =
-    {envpython} eval/eval_tensorflow.py
-
-[testenv:eval_jax]
-deps =
-    jax[cuda]
-    pandas
-install_command =
-    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
-commands =
-    {envpython} eval/eval_jax.py
-
-[testenv:lint]
-skip_install = True
-deps =
-    isort
-    black
-    autoflake
-commands =
-    isort --sl src
-    autoflake -ri --remove-all-unused-imports --ignore-init-module-imports src
-    black src
+    {envpython} -m pytest tests/test_tensorflow.py {posargs}
 """
