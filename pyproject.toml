@@ -70,6 +70,15 @@ install_command =
 commands =
     {envpython} -m pytest tests/test_jax.py {posargs}
 
+[testenv:eval_jax]
+deps =
+    jax[cuda]
+    pandas
+install_command =
+    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
+commands =
+    {envpython} eval/eval_jax.py
+
 [testenv:lint]
 skip_install = True
 deps =
@@ -99,13 +108,4 @@ commands =
     {envpython} -m eval.fig5
     {envpython} -m eval.fig6
     {envpython} -m eval.fig7
-
-[testenv:eval_jax]
-deps =
-    jax[cuda]
-install_command =
-    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
-commands =
-    {envpython} eval_jax/test_jax_sca.py
-    {envpython} eval_jax/test_jax_integral.py
 """
