@@ -70,6 +70,13 @@ install_command =
 commands =
     {envpython} -m pytest tests/test_jax.py {posargs}
 
+[testenv:eval_tf]
+deps =
+    tensorflow
+    pandas
+commands =
+    {envpython} eval/eval_tensorflow.py
+
 [testenv:eval_jax]
 deps =
     jax[cuda]
@@ -89,23 +96,4 @@ commands =
     isort --sl src
     autoflake -ri --remove-all-unused-imports --ignore-init-module-imports src
     black src
-
-[testenv:eval_tf]
-deps =
-    tensorflow
-    tensorflow-probability
-    matplotlib
-    seaborn
-    tqdm
-commands =
-    {envpython} -m eval.prec
-    {envpython} -m eval.time
-    {envpython} -m eval.scale
-    {envpython} -m eval.fig1
-    {envpython} -m eval.fig2
-    {envpython} -m eval.fig3
-    {envpython} -m eval.fig4
-    {envpython} -m eval.fig5
-    {envpython} -m eval.fig6
-    {envpython} -m eval.fig7
 """
