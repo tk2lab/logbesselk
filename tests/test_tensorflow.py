@@ -22,7 +22,7 @@ from logbesselk.tensorflow.integral import log_abs_deriv_bessel_k as logdk_int
 logdkdv_int = lambda v, x: logdk_int(v, x, 1, 0)
 logdkdx_int = lambda v, x: logdk_int(v, x, 0, 1)
 
-tol = 1e-4
+tol = 2e-5
 
 
 def gen_func_fixture(func, kind_list, jit_list):
