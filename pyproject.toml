@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "logbesselk"
-version = "3.1.0"
+version = "3.2.0-dev"
 description = "Provide function to calculate the modified Bessel function of the second kind"
 license = "Apache-2.0"
 authors = ["TAKEKAWA Takashi <takekawa@tk2lab.org>"]
