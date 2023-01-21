@@ -72,6 +72,8 @@ def log_bessel_ku(u, x):
 
     init = s1, r1, i, b1, c1, d1, f0, f1, g1, h1
     sn, rn, *_ = lax.while_loop(cond, body, init)
-    log_ku = (1 / 2) * log((1 / 2) * math.pi / x) - x - log(sn)
+
+    c = (1 / 2) * math.log((1 / 2) * math.pi)
+    log_ku = c - (1 / 2) * log(x) - x - log(sn)
     log_kup1 = log_ku + log(((1 / 2) + u + x - a1 * rn) / x)
     return log_ku, log_kup1

@@ -47,7 +47,7 @@ def log_bessel_k(v, x):
         return log_bessel_recurrence(logk0, logk1, u, n, x)[0]
 
     dtype = result_type(v, x)
-    finite = x > 0
+    finite = is_finite(v) & is_finite(x) & (x > 0)
     large_v_ = v >= 25
     large_x_ = x >= 1.6 + (1 / 2) * log(v + 1)
 

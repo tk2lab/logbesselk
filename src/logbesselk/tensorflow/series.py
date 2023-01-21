@@ -3,6 +3,7 @@ import tensorflow as tf
 from .math import cosh
 from .math import exp
 from .math import fabs
+from .math import fround
 from .math import log
 from .math import sinc
 from .math import sinhc
@@ -21,12 +22,12 @@ __all__ = [
 @wrap_log_bessel_k
 def log_bessel_k(v, x):
     """
-    N.M. Temme.
+    N. M. Temme.
     On the numerical evaluation of the modified Bessel function
     of the third kind.
     Journal of Coumputational Physics, 19, 324-337 (1975).
     """
-    n = tf.math.round(v)
+    n = fround(v)
     u = v - n
     log_ku, log_kup1 = log_bessel_ku(u, x)
     return log_bessel_recurrence(log_ku, log_kup1, u, n, x)[0]
@@ -47,7 +48,6 @@ def log_bessel_ku(u, x):
         lj = li + dj * (pj - j * hj)
         return sj, lj, j, dj, pj, qj, hj
 
-    tf.print(u, x)
     max_iter = 100
 
     shape = result_shape(u, x)

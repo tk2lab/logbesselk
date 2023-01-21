@@ -64,11 +64,11 @@ def log_abs_deriv_bessel_k(v, x, m: int = 0, n: int = 0):
     bins = 32
 
     dtype = result_type(v, x)
-    deriv = grad(func)
     eps = epsilon(dtype)
-    bins = jnp.int32(bins)
     zero = dtype(0)
     scale = dtype(scale)
+    bins = jnp.int32(bins)
+    deriv = grad(func)
 
     out_is_finite = is_finite(v) & is_finite(x)
     out_is_finite &= x > 0

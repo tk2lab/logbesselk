@@ -6,8 +6,8 @@ from .math import sign
 from .utils import result_type
 
 __all__ = [
-    "log_bessel_recurrence",
     "sign_deriv_bessel_k",
+    "log_bessel_recurrence",
 ]
 
 

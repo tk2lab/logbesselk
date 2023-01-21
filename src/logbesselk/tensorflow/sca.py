@@ -14,6 +14,8 @@ from .wrap import wrap_log_bessel_k
 
 __all__ = [
     "log_bessel_k",
+    "bessel_kratio",
+    "bessel_ke",
 ]
 
 
@@ -46,7 +48,6 @@ def log_bessel_k(v, x):
         return log_bessel_recurrence(logk0, logk1, u, n, x)[0]
 
     dtype = result_type(v, x)
-
     finite = is_finite(v) & is_finite(x) & (x > 0)
     large_v_ = v >= 25
     large_x_ = x >= 1.6 + (1 / 2) * log(v + 1)
@@ -54,7 +55,6 @@ def log_bessel_k(v, x):
     large_v = finite & large_v_
     large_x = finite & ~large_v_ & large_x_
     small_x = finite & ~large_v_ & ~large_x_
-    tf.print(v, x)
     return tf.where(large_v, large_v_case(), small_v_case())
 
 

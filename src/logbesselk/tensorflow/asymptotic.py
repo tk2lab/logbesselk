@@ -35,33 +35,34 @@ def log_bessel_k_naive(v, x):
 
 
 def calc_sum_fpq(p, q, max_iter):
-    def cond(out, i, fac, p, update):
+    def cond(out, fac, p, i, update):
         return tf.math.reduce_any(update)
 
-    def body(outi, i, faci, pi, update):
-        j = i + 1
+    def body(outi, faci, pi, i, update):
         diff = poly(faci, i, q) / pi
-        outj = tf.where(update, outi + diff, outi)
-        facj = update_factor(faci, i)
+        outj = outi + diff
+        outj = tf.where(update, outj, outi)
+        facj = update_factor(faci, i, max_iter)
         pj = pi * p
-        update &= fabs(diff) >= eps * fabs(outj)
-        return outj, j, facj, pj, update
+        j = i + 1
+        update &= fabs(diff) > eps * fabs(outj)
+        return outj, facj, pj, j, update
 
     shape = result_shape(p, q)
     dtype = result_type(p, q)
     eps = epsilon(dtype)
     out0 = tf.zeros(shape, dtype)
-    i = tf.constant(0, tf.int32)
     fac0 = tf.constant([1] + [0] * (max_iter - 1), dtype)
     p0 = tf.ones(shape, dtype)
+    index = tf.constant(0, tf.int32)
     update = tf.ones(shape, tf.bool)
-    return tf.while_loop(
-        cond, body, (out0, i, fac0, p0, update), maximum_iterations=max_iter
-    )[0]
+    init = out0, fac0, p0, index, update
+    return tf.while_loop(cond, body, init, maximum_iterations=max_iter)[0]
 
 
-def update_factor(fac, i):
-    k = tf.cast(i + 2 * tf.range(tf.size(fac)), fac.dtype)
+def update_factor(fac, i, size):
+    k = i + 2 * tf.range(size)
+    k = tf.cast(k, fac.dtype)
     a = ((1 / 2) * k + (1 / 8) / (k + 1)) * fac
     b = ((1 / 2) * k + (5 / 8) / (k + 3)) * fac
     return tf.pad(b[:-1], [[1, 0]]) - a
@@ -74,5 +75,4 @@ def poly(fac, i, x):
     def body(out, j):
         return fac[j] + x * out, j - 1
 
-    init = tf.zeros_like(x), i
-    return tf.while_loop(cond, body, init)[0]
+    return tf.while_loop(cond, body, (tf.zeros_like(x), i))[0]

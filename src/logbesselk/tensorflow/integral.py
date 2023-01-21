@@ -60,10 +60,10 @@ def log_abs_deriv_bessel_k(v, x, m=0, n=0):
 
     shape = result_shape(v, x)
     dtype = result_type(v, x)
-    deriv = grad(func)
     eps = epsilon(dtype)
     zero = tf.zeros(shape, dtype)
     scale = tf.constant(scale, dtype)
+    deriv = grad(func)
 
     out_is_finite = is_finite(v) & is_finite(x)
     out_is_finite &= tf.where(tf.equal(m % 2, 1), (x > 0) & (v > 0), (x > 0))

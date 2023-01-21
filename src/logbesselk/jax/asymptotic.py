@@ -7,6 +7,8 @@ from .math import fabs
 from .math import log
 from .math import sqrt
 from .math import square
+from .utils import epsilon
+from .utils import result_type
 from .wrap import wrap_log_bessel_k
 
 __all__ = [
@@ -34,26 +36,31 @@ def log_bessel_k_naive(v, x):
 
 def calc_sum_fpq(p, q, max_iter):
     def cond(args):
-        out, i, faci, pi, diff = args
-        return fabs(diff) > eps * fabs(out)
+        return args[-1]
 
     def body(args):
-        out, i, faci, pi, _ = args
+        outi, faci, pi, j, _ = args
         diff = poly(faci, i, q) / pi
-        return out + diff, i + 1, update_factor(faci, i), pi * p, diff
+        outj = outi + diff
+        facj = update_factor(faci, i, max_iter)
+        pj = pi * p
+        j = i + 1
+        update = fabs(diff) > eps * fabs(outj)
+        return outj, facj, pj, j, update
 
-    dtype = jnp.result_type(p, q).type
-    eps = jnp.finfo(dtype).eps
-    outi = dtype(0)
-    i = 0
-    faci = jnp.asarray([1] + [0] * (max_iter - 1), dtype)
-    pi = dtype(1)
-    diff = dtype(jnp.inf)
-    return lax.while_loop(cond, body, (outi, i, faci, pi, diff))[0]
+    dtype = result_type(p, q)
+    eps = epsilon(dtype)
+    out0 = dtype(0)
+    fac0 = jnp.asarray([1] + [0] * (max_iter - 1), dtype)
+    p0 = dtype(1)
+    index = 0
+    update = True
+    init = out0, fac0, p0, index, update
+    return lax.while_loop(cond, body, init)[0]
 
 
-def update_factor(fac, i):
-    k = i + 2 * jnp.arange(fac.size)
+def update_factor(fac, i, size):
+    k = i + 2 * jnp.arange(size)
     a = ((1 / 2) * k + (1 / 8) / (k + 1)) * fac
     b = ((1 / 2) * k + (5 / 8) / (k + 3)) * fac
     return jnp.pad(b[:-1], [1, 0]) - a
@@ -68,5 +75,4 @@ def poly(fac, i, x):
         out, j = args
         return fac[j] + x * out, j - 1
 
-    dtype = jnp.result_type(x).type
-    return lax.while_loop(cond, body, (dtype(0), i))[0]
+    return lax.while_loop(cond, body, (result_type(x)(0), i))[0]

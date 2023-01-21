@@ -2,6 +2,7 @@ import functools
 import math
 
 import tensorflow as tf
+from tensorflow import where
 from tensorflow.math import abs as fabs
 from tensorflow.math import cosh
 from tensorflow.math import exp
@@ -17,7 +18,6 @@ from tensorflow.math import sinh
 from tensorflow.math import sqrt
 from tensorflow.math import square
 from tensorflow.math import tanh
-from tensorflow import where
 
 __all__ = [
     "fabs",
