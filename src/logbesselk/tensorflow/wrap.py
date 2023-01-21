@@ -60,7 +60,6 @@ def wrap_log_abs_deriv_bessel_k(func):
             logk = wrapped_func(v, x, m, n)
             dv = sv * exp(wrapped_func(v, x, m + 1, n) - logk)
             dx = -exp(wrapped_func(v, x, m, n + 1) - logk)
-            #dx = tf.where(tf.equal(m, 0) & tf.equal(n, 0), -v / x - exp(wrapped_func(v - 1, x) - logk), dx)
             return dv * g, dx * g
 
         return logk, grad
