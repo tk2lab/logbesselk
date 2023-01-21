@@ -34,19 +34,21 @@ def log_bessel_k(v, x):
 
 
 def log_bessel_ku(u, x):
-    def cond(si, li, i, di, pi, qi, hi):
-        nonzero_update = fabs(di * hi) >= eps * fabs(si)
-        return tf.math.reduce_any(nonzero_update)
+    def cond(ku, kn, i, p, q, r, s):
+        update = fabs(r * s) > eps * fabs(ku)
+        return (i < 10) | tf.math.reduce_any(update)
 
-    def body(si, li, i, di, pi, qi, hi):
-        j = i + 1
-        dj = di * square(x / 2) / j
-        pj = pi / (j - u)
-        qj = qi / (j + u)
-        hj = (j * hi + pi + qi) / (square(j) - square(u))
-        sj = si + dj * hj
-        lj = li + dj * (pj - j * hj)
-        return sj, lj, j, dj, pj, qj, hj
+    def body(ku, kn, i, p, q, r, s):
+        i += 1
+        p, q, r, s = (
+            p / (i - u),
+            q / (i + u),
+            r * square(x / 2) / i,
+            (p + q + i * s) / (square(i) - square(u)),
+        )
+        ku += r * s
+        kn += r * (p - i * s)
+        return ku, kn, i, p, q, r, s
 
     max_iter = 100
 
@@ -59,14 +61,15 @@ def log_bessel_ku(u, x):
     mu = u * lxh
 
     i = tf.constant(0, dtype)
-    d0 = tf.ones(shape, dtype)
-    p0 = (1 / 2) * exp(-mu) / (gp - u * gm)
-    q0 = (1 / 2) * exp(mu) / (gp + u * gm)
-    h0 = (gm * cosh(mu) - gp * lxh * sinhc(mu)) / sinc(u)
-    s0 = d0 * h0
-    l0 = d0 * (p0 - i * h0)
+    p = (1 / 2) * exp(-mu) / (gp - u * gm)
+    q = (1 / 2) * exp(mu) / (gp + u * gm)
+    r = tf.ones(shape, dtype)
+    s = (gm * cosh(mu) - gp * lxh * sinhc(mu)) / sinc(u)
 
-    init = s0, l0, i, d0, p0, q0, h0
+    ku = r * s
+    kn = r * (p - i * s)
+
+    init = ku, kn, i, p, q, r, s
     ku, kn, *_ = tf.while_loop(cond, body, init, maximum_iterations=max_iter)
     return log(ku), log(kn) - lxh
 

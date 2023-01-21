@@ -35,19 +35,22 @@ def log_bessel_k(v, x):
 def log_bessel_ku(u, x):
 
     def cond(args):
-        ki, li, i, ci, pi, qi, fi = args
-        return (i < max_iter) & (fabs(ci * fi) >= eps * fabs(ki))
+        ku, kn, i, p, q, r, s = args
+        update = fabs(r * s) > eps * fabs(ku)
+        return (i < 10) | (update & (i < max_iter))
 
     def body(args):
-        si, li, i, di, pi, qi, hi = args
-        j = i + 1
-        dj = di * square(x / 2) / j
-        pj = pi / (j - u)
-        qj = qi / (j + u)
-        hj = (j * hi + pi + qi) / (square(j) - square(u))
-        sj = si + dj * hj
-        lj = li + dj * (pj - j * fj)
-        return sj, lj, j, dj, pj, qj, hj
+        ku, kn, i, p, q, r, s = args
+        i += 1
+        p, q, r, s = (
+            p / (i - u),
+            q / (i + u),
+            r * square(x / 2) / i,
+            (p + q + i * s) / (square(i) - square(u)),
+        )
+        ku += r * s
+        kn += r * (p - i * s)
+        return ku, kn, i, p, q, r, s
 
     max_iter = 100
 
@@ -59,14 +62,15 @@ def log_bessel_ku(u, x):
     mu = u * lxh
 
     i = 0
-    c0 = dtype(1)
-    p0 = (1 / 2) * exp(-mu) / (gp - u * gm)
-    q0 = (1 / 2) * exp(mu) / (gp + u * gm)
-    h0 = (gm * cosh(mu) - gp * lxh * sinhc(mu)) / sinc(u)
-    s0 = d0 * h0
-    l0 = d0 * (p0 - i * h0)
+    p = (1 / 2) * exp(-mu) / (gp - u * gm)
+    q = (1 / 2) * exp(mu) / (gp + u * gm)
+    r = dtype(1)
+    s = (gm * cosh(mu) - gp * lxh * sinhc(mu)) / sinc(u)
 
-    init = s0, l0, i, d0, p0, q0, h0
+    ku = r * s
+    kn = r * (p - i * s)
+
+    init = ku, kn, i, p, q, r, s
     ku, kn, *_ = lax.while_loop(cond, body, init)
     return log(ku), log(kn) - lxh
 
