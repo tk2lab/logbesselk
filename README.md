@@ -24,26 +24,34 @@ pip install tensorflow logbesselk
 ### Examples
 ```python
 import tensorflow as tf
-from logbesselk.tensorflow import log_bessel_k
+from logbesselk.tensorflow import log_bessel_k as logk
+from logbesselk.jax import bessel_ke as ke
+from logbesselk.jax import bessel_kratio as kratio
 
-# return tensor
-log_k = log_bessel_k(v=1.0, x=1.0)
-log_dkdv = log_bessel_k(v=1.0, x=1.0, m=1, n=0)
-log_dkdx = log_bessel_k(v=1.0, x=1.0, m=0, n=1)
+v = 1.0
+x = 1.0
+a = logk(v, x)
 
-# build graph at first execution time
-log_bessel_k_tensor = tf.function(log_bessel_k)
-log_bessel_dkdv_tensor = tf.function(lambda v, x: log_bessel_k(v, x, 1, 0))
-log_bessel_dkdx_tensor = tf.function(lambda v, x: log_bessel_k(v, x, 0, 1))
+v = jnp.linspace(1, 10, 10)
+x = jnp.linspace(1, 10, 10)
+b = logk(v, x)
 
-n = 1000
-for i in range(10):
-    v = 10. ** (2. * tf.random.uniform((n,)) - 1.)
-    x = 10. ** (3. * tf.random.uniform((n,)) - 1.)
+# gradient
+with tf.GradientTape() as g:
+    g.watch(v, x)
+    f = logk(v, x)
+dlogkdv = g.gradient(f, v)
+dlogkdx = g.gradient(f, x)
 
-    log_k = log_bessel_k_tensor(v, x)
-    log_dkdv = log_bessel_dkdv_tensor(v, x)
-    log_dkdx = log_bessel_dkdx_tensor(v, x)
+# use tf.function
+logk = tf.function(logk)
+
+# advanced version
+from logbesselk.tensorflow import log_abs_deriv_bessel_k
+
+logk = lambda v, x: log_abs_deriv_bessel_k(v, x, 0, 0)
+logdkdv = lambda v, x: log_abs_deriv_bessel_k(v, x, 1, 0)
+logdkdx = lambda v, x: log_abs_deriv_bessel_k(v, x, 0, 1)
 ```
 
 
@@ -63,41 +71,40 @@ pip install logbesselk
 ```python
 import jax
 import jax.numpy as jnp
-from logbesselk.jax import log_bessel_k
-from logbesselk.jax import bessel_ke
-from logbesselk.jax import bessel_kratio
-from logbesselk.jax import log_abs_devel_bessel_k
+from logbesselk.jax import log_bessel_k as logk
+from logbesselk.jax import bessel_ke as ke
+from logbesselk.jax import bessel_kratio as kratio
 
 # scalar func and grad
-logk = log_bessel_k
-dlogkdv = jax.grad(logk, 0)
-dlogkdx = jax.grad(logk, 1)
-
 v = 1.0
 x = 1.0
-
 a = logk(v, x)
+
+# dlogK/dv = (dK/dv) / K
+dlogkdv = jax.grad(logk, 0)
 b = dlogkdv(v, x)
+
+# dlogK/dx = (dK/dx) / K
+dlogkdx = jax.grad(logk, 1)
 c = dlogkdx(v, x)
 
 # misc
-d = bessel_ke(v, x)
-e = bessel_kratio(v, x, d)
+d = ke(v, x)
+e = kratio(v, x, d=1)
 
 # vectorize
 logk_vec = jax.vmap(logk)
 
 v = jnp.linspace(1, 10, 10)
 x = jnp.linspace(1, 10, 10)
-
 f = logk_vec(v)
 
 # use jit
-logk_jit = jax.jit(logk_vec)
-
-g = logk_jit(v, x)
+logk_vec_jit = jax.jit(logk_vec)
 
 # advanced version
+from logbesselk.jax import log_abs_devel_bessel_k
+
 log_dkdv = lambda v, x: log_abs_deriv_bessel_k(v, x, 1, 0)
 log_dkdx = lambda v, x: log_abs_deriv_bessel_k(v, x, 0, 1)
 
