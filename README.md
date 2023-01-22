@@ -1,3 +1,4 @@
+[![Latest Version](https://badge.fury.io/py/logbesselk.svg)](https://pypi.python.org/pypi/logbesselk)
 # logbesselk
 Provide function to calculate the modified Bessel function of the second kind
 and its derivatives.
