@@ -28,5 +28,5 @@ df.sort_values("condition", inplace=True)
 print("v^2/x < 100 case")
 print(df.query("condition < 100")[["diff", "rdiff", "absrdiff"]].describe())
 
-os.makedirs("eval/results")
+os.makedirs("eval/results", exist_ok=True)
 df.to_csv("eval/results/logk_jax_int_64.csv")
