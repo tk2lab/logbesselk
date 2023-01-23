@@ -33,7 +33,8 @@ def log_bessel_k(v, x):
 def log_bessel_ku(u, x):
     def cond(args):
         si, ri, i, bi, ci, di, fp, fi, gi, hi = args
-        return (i < max_iter) * (fabs(di * hi) >= eps * fabs(si))
+        nonzero_update = fabs(di * hi) >= eps * fabs(si)
+        return (i < max_iter) * nonzero_update
 
     def body(args):
         si, ri, i, bi, ci, di, fp, fi, gi, hi = args

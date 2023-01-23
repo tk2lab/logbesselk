@@ -7,6 +7,7 @@ from .math import log_cosh
 from .math import log_sinh
 from .math import maximum
 from .math import square
+from .math import where
 from .utils import epsilon
 from .utils import extend
 from .utils import find_zero
@@ -48,9 +49,9 @@ def bessel_ke(v, x):
 def log_abs_deriv_bessel_k(v, x, m=0, n=0):
     def func(t):
         out = -x * cosh(t)
-        out += tf.where(tf.equal(m % 2, 0), log_cosh(v * t), log_sinh(v * t))
-        out = tf.where(m > 0, out + tf.cast(m, dtype) * log(t), out)
-        out = tf.where(n > 0, out + tf.cast(n, dtype) * log_cosh(t), out)
+        out += where(tf.equal(m % 2, 0), log_cosh(v * t), log_sinh(v * t))
+        out = where(m > 0, out + tf.cast(m, dtype) * log(t), out)
+        out = where(n > 0, out + tf.cast(n, dtype) * log_cosh(t), out)
         return out
 
     scale = 0.1
@@ -65,17 +66,20 @@ def log_abs_deriv_bessel_k(v, x, m=0, n=0):
     scale = tf.constant(scale, dtype)
     deriv = grad(func)
 
-    out_is_finite = is_finite(v) & is_finite(x)
-    out_is_finite &= tf.where(tf.equal(m % 2, 1), (x > 0) & (v > 0), (x > 0))
+    out_is_finite = where(
+        tf.equal(m % 2, 0),
+        (v >= 0) & (x > 0),
+        (v > 0) & (x > 0),
+    )
 
-    deriv_at_zero_is_positive = tf.where(
+    deriv_at_zero_is_positive = where(
         tf.equal(m, 0),
         out_is_finite & (square(v) + tf.cast(m, dtype) > x),
         out_is_finite,
     )
 
     start = tf.zeros(shape, dtype)
-    delta = tf.where(deriv_at_zero_is_positive, scale, zero)
+    delta = where(deriv_at_zero_is_positive, scale, zero)
     start, delta = extend(deriv, start, delta)
     tp = find_zero(deriv, start, delta, tol, max_iter)
 
@@ -87,16 +91,12 @@ def log_abs_deriv_bessel_k(v, x, m=0, n=0):
     mfunc_at_tpr_is_positive = out_is_finite & (mfunc(tpr) > 0)
 
     start = zero
-    delta = tf.where(mfunc_at_zero_is_negative, tpl, zero)
+    delta = where(mfunc_at_zero_is_negative, tpl, zero)
     t0 = find_zero(mfunc, start, delta, tol, max_iter)
 
     start = tpr
-    delta = tf.where(mfunc_at_tpr_is_positive, scale, zero)
+    delta = where(mfunc_at_tpr_is_positive, scale, zero)
     start, delta = extend(mfunc, start, delta)
     t1 = find_zero(mfunc, start, delta, tol, max_iter)
 
-    return tf.cond(
-        tf.math.reduce_any(t0 < t1),
-        lambda: log_integrate(func, t0, t1, bins),
-        lambda: tf.zeros(shape, dtype),
-    )
+    return log_integrate(func, t0, t1, bins)

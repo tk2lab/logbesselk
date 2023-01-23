@@ -3,7 +3,6 @@ import jax.numpy as jnp
 from jax import grad
 
 from .math import cosh
-from .math import is_finite
 from .math import log
 from .math import log_cosh
 from .math import log_sinh
@@ -70,14 +69,15 @@ def log_abs_deriv_bessel_k(v, x, m: int = 0, n: int = 0):
     bins = jnp.int32(bins)
     deriv = grad(func)
 
-    out_is_finite = is_finite(v) & is_finite(x)
-    out_is_finite &= x > 0
-    if m % 2 == 1:
-        out_is_finite &= v > 0
+    if m % 2 == 0:
+        out_is_finite = (v >= 0) & (x > 0)
+    else:
+        out_is_finite = (v > 0) & (x > 0)
 
-    deriv_at_zero_is_positive = out_is_finite
     if m == 0:
-        deriv_at_zero_is_positive &= square(v) + m > x
+        deriv_at_zero_is_positive = out_is_finite & (square(v) + m > x)
+    else:
+        deriv_at_zero_is_positive = out_is_finite
 
     start = zero
     delta = lax.cond(deriv_at_zero_is_positive, lambda: scale, lambda: zero)

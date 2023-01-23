@@ -9,6 +9,7 @@ from .math import inf
 from .math import nan
 from .math import sign
 from .utils import result_type
+from .utils import select
 
 __all__ = [
     "wrap_log_bessel_k",
@@ -23,15 +24,11 @@ def wrap_log_bessel_k(func):
     def wrapped_func(v, x):
         dtype = result_type(v, x)
         v = fabs(v)
-        return lax.cond(
-            x > 0,
-            lambda: func(v, x),
-            lambda: lax.cond(
-                x < 0,
-                lambda: dtype(nan),
-                lambda: dtype(inf),
-            ),
-        )
+        return select(
+            ((v >= 0) & (x > 0), lambda: func(v, x)),
+            ((x == 0), lambda: dtype(inf)),
+            lambda: dtype(nan),
+        )()
 
     def fwd(v, x):
         out = func(v, x)
@@ -57,19 +54,19 @@ def wrap_log_abs_deriv_bessel_k(func):
             raise ValueError()
         dtype = result_type(v, x)
         v = fabs(v)
-        return lax.cond(
-            (x > 0) if m % 2 == 0 else (x > 0) & (v > 0),
-            lambda: func(v, x, m, n),
-            lambda: lax.cond(
-                x < 0,
+        if m % 2 == 0:
+            return select(
+                ((v >= 0) & (x > 0), lambda: func(v, x, m, n)),
+                ((x == 0), lambda: dtype(inf)),
                 lambda: dtype(nan),
-                lambda: lax.cond(
-                    x == 0,
-                    lambda: dtype(inf),
-                    lambda: dtype(-inf),
-                ),
-            ),
-        )
+            )()
+        else:
+            return select(
+                ((v > 0) & (x > 0), lambda: func(v, x, m, n)),
+                ((v == 0), lambda: dtype(-inf)),
+                ((x == 0), lambda: dtype(inf)),
+                lambda: dtype(nan),
+            )()
 
     def fwd(v, x, m, n):
         out = custom_func(v, x, m, n)

@@ -1,6 +1,8 @@
 import functools
 import math
 
+from numpy import inf
+from numpy import nan
 import tensorflow as tf
 from tensorflow import where
 from tensorflow.math import abs as fabs
@@ -20,6 +22,8 @@ from tensorflow.math import square
 from tensorflow.math import tanh
 
 __all__ = [
+    "inf",
+    "nan",
     "fabs",
     "cosh",
     "exp",

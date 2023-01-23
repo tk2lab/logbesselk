@@ -9,6 +9,7 @@ from .math import log
 __all__ = [
     "result_type",
     "epsilon",
+    "select",
     "extend",
     "find_zero",
     "log_integrate",
@@ -21,6 +22,12 @@ def result_type(*args):
 
 def epsilon(dtype):
     return jnp.finfo(dtype).eps
+
+
+def select(*cs):
+    if len(cs) == 1:
+        return cs[0]
+    return lambda: lax.cond(cs[0][0], cs[0][1], select(*cs[1:]))
 
 
 def extend(func, x0, dx):

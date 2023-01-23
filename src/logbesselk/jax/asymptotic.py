@@ -36,7 +36,8 @@ def log_bessel_k_naive(v, x):
 
 def calc_sum_fpq(p, q, max_iter):
     def cond(args):
-        return args[-1]
+        _, _, _, i, update = args
+        return (i < max_iter) & update
 
     def body(args):
         outi, faci, pi, i, _ = args

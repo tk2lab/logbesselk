@@ -4,6 +4,7 @@ import tensorflow as tf
 from .math import exp
 from .math import fabs
 from .math import log
+from .math import where
 
 __all__ = [
     "result_shape",
@@ -47,6 +48,12 @@ def epsilon(dtype):
     return np.finfo(dtype.as_numpy_dtype).eps
 
 
+def select(*cs):
+    if len(cs) == 1:
+        return cs[0]
+    return where(cs[0][0], cs[0][1], select(*cs[1:]))
+
+
 def grad(func, i=0):
     def deriv(*args):
         with tf.GradientTape() as g:
@@ -63,8 +70,8 @@ def extend(func, x0, dx):
 
     def body(x, d, f1):
         f1 = func(x + d)
-        x = tf.where(f1 > 0, x + d, x)
-        d = tf.where(f1 > 0, 2 * d, d)
+        x = where(f1 > 0, x + d, x)
+        d = where(f1 > 0, 2 * d, d)
         return x, d, f1
 
     dummy = tf.ones_like(x0)
@@ -84,16 +91,16 @@ def find_zero(func, x0, dx, tol, max_iter):
         x_shrink = x0 + 0.5 * (x1 - x0)
         f_shrink = func(x_shrink)
         cond = f_shrink * f0 < 0
-        x0, x1 = x_shrink, tf.where(cond, x0, x1)
-        f0, f1 = f_shrink, tf.where(cond, f0, f1)
+        x0, x1 = x_shrink, where(cond, x0, x1)
+        f0, f1 = f_shrink, where(cond, f0, f1)
 
         diff = -f0 / deriv(x0)
         ddx = diff / (x1 - x0)
         dx_in_range = (0 < ddx) & (ddx < 1)
-        x_newton = tf.where(dx_in_range, x0 + diff, x0)
+        x_newton = where(dx_in_range, x0 + diff, x0)
         f_newton = func(x_newton)
-        x0, x1 = x_newton, tf.where(f_newton * f0 < 0, x0, x1)
-        x1 = tf.where(f_newton * f0 < 0, x0, x1)
+        x0, x1 = x_newton, where(f_newton * f0 < 0, x0, x1)
+        x1 = where(f_newton * f0 < 0, x0, x1)
         x0 = x_newton
         return x0, x1
 
@@ -112,19 +119,23 @@ def log_integrate(func, t0, t1, bins):
         ft = func(t)
         diff = ft - fmax
         keep_fmax = ft < fmax
-        fsum = tf.where(
+        fsum = where(
             keep_fmax,
             fsum + exp(diff),
             fsum * exp(-diff) + 1,
         )
-        fmax = tf.where(keep_fmax, fmax, ft)
+        fmax = where(keep_fmax, fmax, ft)
         return fmax, fsum, i + 1
 
     shape = result_shape(t0, t1)
     dtype = result_type(t0, t1)
     zero = tf.zeros(shape, dtype)
     izero = tf.constant(0, tf.int32)
-    bins = tf.constant(bins, tf.int32)
+    bins = where(
+        tf.math.reduce_all(tf.equal(t0, t1)),
+        tf.constant(bins, tf.int32),
+        tf.constant(bins, tf.int32),
+    )
     fmax, fsum, _ = tf.while_loop(cond, body, (zero, zero, izero))
     h = fabs(t1 - t0) / tf.cast(bins, dtype)
     return fmax + log(fsum) + log(h)
