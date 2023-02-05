@@ -2,22 +2,28 @@ import functools
 import math
 
 import tensorflow as tf
-from tensorflow import where
+from tensorflow import (
+    where,
+)
 from tensorflow.math import abs as fabs
-from tensorflow.math import cosh
-from tensorflow.math import exp
-from tensorflow.math import expm1
-from tensorflow.math import is_finite
-from tensorflow.math import log
-from tensorflow.math import log1p
-from tensorflow.math import maximum
+from tensorflow.math import (
+    cosh,
+    exp,
+    expm1,
+    is_finite,
+    log,
+    log1p,
+    maximum,
+)
 from tensorflow.math import round as fround
-from tensorflow.math import sign
-from tensorflow.math import sin
-from tensorflow.math import sinh
-from tensorflow.math import sqrt
-from tensorflow.math import square
-from tensorflow.math import tanh
+from tensorflow.math import (
+    sign,
+    sin,
+    sinh,
+    sqrt,
+    square,
+    tanh,
+)
 
 __all__ = [
     "fabs",

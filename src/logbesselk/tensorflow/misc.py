@@ -1,8 +1,13 @@
 import tensorflow as tf
 
-from .math import log
-from .math import log_add_exp
-from .utils import result_type
+from .math import (
+    log,
+    log_add_exp,
+    sign,
+)
+from .utils import (
+    result_type,
+)
 
 __all__ = [
     "sign_deriv_bessel_k",

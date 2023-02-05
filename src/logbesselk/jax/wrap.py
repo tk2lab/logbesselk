@@ -3,12 +3,16 @@ import functools
 import jax
 import jax.lax as lax
 
-from .math import exp
-from .math import fabs
-from .math import inf
-from .math import nan
-from .math import sign
-from .utils import result_type
+from .math import (
+    exp,
+    fabs,
+    inf,
+    nan,
+    sign,
+)
+from .utils import (
+    result_type,
+)
 
 __all__ = [
     "wrap_log_bessel_k",

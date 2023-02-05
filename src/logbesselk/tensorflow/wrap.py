@@ -3,10 +3,14 @@ import functools
 import numpy as np
 import tensorflow as tf
 
-from .math import exp
-from .math import fabs
-from .math import sign
-from .utils import result_type
+from .math import (
+    exp,
+    fabs,
+    sign,
+)
+from .utils import (
+    result_type,
+)
 
 __all__ = [
     "wrap_log_bessel_k",

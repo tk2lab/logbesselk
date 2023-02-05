@@ -1,17 +1,25 @@
 import jax.lax as lax
 
-from .math import cosh
-from .math import exp
-from .math import fabs
-from .math import fround
-from .math import log
-from .math import sinc
-from .math import sinhc
-from .math import square
-from .misc import log_bessel_recurrence
-from .utils import epsilon
-from .utils import result_type
-from .wrap import wrap_log_bessel_k
+from .math import (
+    cosh,
+    exp,
+    fabs,
+    fround,
+    log,
+    sinc,
+    sinhc,
+    square,
+)
+from .misc import (
+    log_bessel_recurrence,
+)
+from .utils import (
+    epsilon,
+    result_type,
+)
+from .wrap import (
+    wrap_log_bessel_k,
+)
 
 __all__ = [
     "log_bessel_k",
@@ -33,7 +41,6 @@ def log_bessel_k(v, x):
 
 
 def log_bessel_ku(u, x):
-
     def cond(args):
         ku, kn, i, p, q, r, s = args
         update = fabs(r * s) > eps * fabs(ku)

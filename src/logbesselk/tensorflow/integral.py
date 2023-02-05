@@ -1,22 +1,28 @@
 import tensorflow as tf
 
-from .math import cosh
-from .math import is_finite
-from .math import log
-from .math import log_cosh
-from .math import log_sinh
-from .math import maximum
-from .math import square
-from .utils import epsilon
-from .utils import extend
-from .utils import find_zero
-from .utils import grad
-from .utils import log_integrate
-from .utils import result_shape
-from .utils import result_type
-from .wrap import wrap_bessel_ke
-from .wrap import wrap_bessel_kratio
-from .wrap import wrap_log_abs_deriv_bessel_k
+from .math import (
+    cosh,
+    is_finite,
+    log,
+    log_cosh,
+    log_sinh,
+    maximum,
+    square,
+)
+from .utils import (
+    epsilon,
+    extend,
+    find_zero,
+    grad,
+    log_integrate,
+    result_shape,
+    result_type,
+)
+from .wrap import (
+    wrap_bessel_ke,
+    wrap_bessel_kratio,
+    wrap_log_abs_deriv_bessel_k,
+)
 
 __all__ = [
     "log_bessel_k",
@@ -53,6 +59,9 @@ def log_abs_deriv_bessel_k(v, x, m=0, n=0):
         out = tf.where(n > 0, out + tf.cast(n, dtype) * log_cosh(t), out)
         return out
 
+    def mfunc(t):
+        return func(t) - th
+
     scale = 0.1
     tol = 1.0
     max_iter = 10
@@ -80,7 +89,6 @@ def log_abs_deriv_bessel_k(v, x, m=0, n=0):
     tp = find_zero(deriv, start, delta, tol, max_iter)
 
     th = func(tp) + log(eps) - tol
-    mfunc = lambda t: func(t) - th
     tpl = maximum(tp - bins * eps, zero)
     tpr = maximum(tp + bins * eps, tp * (1 + bins * eps))
     mfunc_at_zero_is_negative = out_is_finite & (mfunc(zero) < 0)

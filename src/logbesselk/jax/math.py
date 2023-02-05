@@ -2,24 +2,32 @@ import math
 
 import jax
 from jax.numpy import abs as fabs
-from jax.numpy import cosh
-from jax.numpy import exp
-from jax.numpy import expm1
-from jax.numpy import inf
+from jax.numpy import (
+    cosh,
+    exp,
+    expm1,
+    inf,
+)
 from jax.numpy import isfinite as is_finite
-from jax.numpy import log
-from jax.numpy import log1p
+from jax.numpy import (
+    log,
+    log1p,
+)
 from jax.numpy import logaddexp as log_add_exp
-from jax.numpy import maximum
-from jax.numpy import nan
+from jax.numpy import (
+    maximum,
+    nan,
+)
 from jax.numpy import round as fround
-from jax.numpy import sign
-from jax.numpy import sinc
-from jax.numpy import sinh
-from jax.numpy import sqrt
-from jax.numpy import square
-from jax.numpy import tanh
-from jax.numpy import where
+from jax.numpy import (
+    sign,
+    sinc,
+    sinh,
+    sqrt,
+    square,
+    tanh,
+    where,
+)
 
 __all__ = [
     "fabs",

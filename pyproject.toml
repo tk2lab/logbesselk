@@ -18,9 +18,12 @@ python = ">=3.8,<3.12"
 
 [tool.isort]
 profile = "black"
+multi_line_output = 3
+force_grid_wrap = 1
 
-[tool.black]
-line-length = 79
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203"]
 
 [tool.pytest.ini_options]
 markers = [
@@ -51,11 +54,12 @@ skip_install = True
 deps =
     isort
     black
-    autoflake
+    flake8
+    pyproject-flake8
 commands =
-    isort --sl src
-    autoflake -ri --remove-all-unused-imports --ignore-init-module-imports src
+    isort src
     black src
+    pflake8 src
 
 [testenv:eval_jax]
 deps =
@@ -96,4 +100,15 @@ deps =
     pandas
 commands =
     {envpython} -m pytest tests/test_tensorflow.py {posargs}
+
+[testenv:notebook]
+basepython = python3.11
+deps =
+    jax[cuda]
+    jupyterlab
+    jupyterlab_nvdashboard
+install_command =
+    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
+commands =
+    jupyter lab --no-browser
 """

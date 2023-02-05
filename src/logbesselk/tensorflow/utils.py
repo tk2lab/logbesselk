@@ -1,9 +1,11 @@
 import numpy as np
 import tensorflow as tf
 
-from .math import exp
-from .math import fabs
-from .math import log
+from .math import (
+    exp,
+    fabs,
+    log,
+)
 
 __all__ = [
     "result_shape",
