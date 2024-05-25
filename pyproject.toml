@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "logbesselk"
-version = "3.3.0-dev"
+version = "3.3.0"
 description = "Provide function to calculate the modified Bessel function of the second kind"
 license = "Apache-2.0"
 authors = ["TAKEKAWA Takashi <takekawa@tk2lab.org>"]
@@ -12,7 +12,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12"
+python = ">=3.8,<3.13"
 #tensorflow = ">=2.6,<2.12"
 #jax = "^0.2+cuda"
 

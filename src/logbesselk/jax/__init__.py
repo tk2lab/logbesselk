@@ -1,7 +1,6 @@
-from .integral import (
+from .ica import (
     bessel_ke,
     bessel_kratio,
-    log_abs_deriv_bessel_k,
     log_bessel_k,
 )
 from .misc import (
@@ -11,7 +10,6 @@ from .misc import (
 __all__ = [
     "bessel_ke",
     "bessel_kratio",
-    "log_abs_deriv_bessel_k",
     "log_bessel_k",
     "sign_deriv_bessel_k",
 ]
