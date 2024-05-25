@@ -36,30 +36,42 @@ legacy_tox_ini = """
 min_version = 4.0
 isolated_build = True
 env_list = 
-    py{38,39,310,}-tf{26,27,28,29,210,211}
-    py{38,39,310,311,}-jax{3,4}
+    py{310,311,312}-jax{3,4}
+    py{310,311,312}-tf{29,210,211,212,213,214,215,216}
     lint
     eval_tf
     eval_jax
 
 [gh-actions]
 python =
-    3.8: py38-tf26, py38-tf211, py38-jax3, py38-jax4
-    3.9: py39-tf26
-    3.10: py310-tf29, py310-tf211
-    3.11: py311-jax3, py311-jax4
+    3.10: py310-jax3, py310-tf29
+    3.12: py312-jax4, py312-tf216
 
-[testenv:lint]
-skip_install = True
+[testenv:py{310,311,312}-jax{3,4}]
 deps =
-    isort
-    black
-    flake8
-    pyproject-flake8
+    jax3: jax[cuda] (>=0.3,<0.4)
+    jax4: jax[cuda] (>=0.4,<0.5)
+    pytest
+    pandas
+install_command =
+    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
 commands =
-    isort src
-    black src
-    pflake8 src
+    {envpython} -m pytest tests/test_jax.py {posargs}
+
+[testenv:py{310,311,312}-tf{29,210,211,212,213,214,215,216}]
+deps =
+    tf29: tensorflow (>=2.9,<2.10)
+    tf210: tensorflow (>=2.10,<2.11)
+    tf211: tensorflow (>=2.11,<2.12)
+    tf212: tensorflow (>=2.12,<2.13)
+    tf213: tensorflow (>=2.13,<2.14)
+    tf214: tensorflow (>=2.14,<2.15)
+    tf215: tensorflow (>=2.15,<2.16)
+    tf216: tensorflow (>=2.16,<2.17)
+    pytest
+    pandas
+commands =
+    {envpython} -m pytest tests/test_tensorflow.py {posargs}
 
 [testenv:eval_jax]
 deps =
@@ -76,39 +88,4 @@ deps =
     pandas
 commands =
     {envpython} eval/eval_tensorflow.py
-
-[testenv:py{38,39,310,311,}-jax{3,4}]
-deps =
-    jax3: jax[cuda] (>=0.3,<0.4)
-    jax4: jax[cuda] (>=0.4,<0.5)
-    pytest
-    pandas
-install_command =
-    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
-commands =
-    {envpython} -m pytest tests/test_jax.py {posargs}
-
-[testenv:py{38,39,310,}-tf{26,27,28,29,210,211}]
-deps =
-    tf26: tensorflow (>=2.6,<2.7)
-    tf27: tensorflow (>=2.7,<2.8)
-    tf28: tensorflow (>=2.8,<2.9)
-    tf29: tensorflow (>=2.9,<2.10)
-    tf210: tensorflow (>=2.10,<2.11)
-    tf211: tensorflow (>=2.11,<2.12)
-    pytest
-    pandas
-commands =
-    {envpython} -m pytest tests/test_tensorflow.py {posargs}
-
-[testenv:notebook]
-basepython = python3.11
-deps =
-    jax[cuda]
-    jupyterlab
-    jupyterlab_nvdashboard
-install_command =
-    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
-commands =
-    jupyter lab --no-browser
 """
