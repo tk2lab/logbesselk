@@ -59,7 +59,7 @@ logdkdx = lambda v, x: log_abs_deriv_bessel_k(v, x, 0, 1)
 
 ### Require
 - Python (>=3.10)
-- jax (>=0.3)
+- jax (>=0.4)
 
 ### Installation
 ```shell
