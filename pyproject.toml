@@ -14,15 +14,15 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 [project.optional-dependences]
-tensorflow = [
-    "tensorflow>=2.9",
-]
 jax = [
     "jax>=0.4",
     "jaxlib>=0.4",
+]
+tensorflow = [
+    "tensorflow>=2.8",
 ]
 
 [build-system]
@@ -43,7 +43,7 @@ markers = [
 ]
 
 [tool.ruff]
-target-versin = "py310"
+target-version = "py310"
 
 [tool.ruff.format]
 quote-style = "single"
@@ -65,17 +65,18 @@ legacy_tox_ini = """
 min_version = 4.0
 rye_discovery = true
 env_list = 
-    py{310,311,312}-jax{4,latest}
-    py{310,311,312}-tf{29,210,211,212,213,214,215,216,latest}
+    py{310,311,312}-jax{latest,4}
+    py{310,311}-tf{latest,28,29,210,211,212,213,214,215,216}
+    py312-tf{latest,216}
     eval_tf
     eval_jax
 
 [gh-actions]
 python =
-    3.10: py312-jax4, py310-tf29
+    3.10: py310-jax4, py310-tf28
     3.12: py312-jaxlatest, py312-tflatest
 
-[testenv:py{310,311,312}-jax{3,4,latest}]
+[testenv:py{310,311,312}-jax{4,latest}]
 deps =
     jaxlatest: jax[cuda12]
     jax4: jax[cuda12] (>=0.4,<0.5)
@@ -84,17 +85,18 @@ deps =
 commands =
     {envpython} -m pytest tests/test_jax.py {posargs}
 
-[testenv:py{310,311,312}-tf{29,210,211,212,213,214,215,216,latest}]
+[testenv:py{310,311,312}-tf{latest,28,29,210,211,212,213,214,215,216}]
 deps =
     tflatest: tensorflow
-    tf29: tensorflow (>=2.9,<2.10)
-    tf210: tensorflow (>=2.10,<2.11)
-    tf211: tensorflow (>=2.11,<2.12)
-    tf212: tensorflow (>=2.12,<2.13)
-    tf213: tensorflow (>=2.13,<2.14)
-    tf214: tensorflow (>=2.14,<2.15)
-    tf215: tensorflow (>=2.15,<2.16)
     tf216: tensorflow (>=2.16,<2.17)
+    tf215: tensorflow (>=2.15,<2.16)
+    tf214: tensorflow (>=2.14,<2.15)
+    tf213: tensorflow (>=2.13,<2.14)
+    tf212: tensorflow (>=2.12,<2.13)
+    tf211: tensorflow (>=2.11,<2.12)
+    tf210: tensorflow (>=2.10,<2.11)
+    tf29: tensorflow (>=2.9,<2.10)
+    tf28: tensorflow (>=2.8,<2.9)
     pytest
     pandas
 commands =

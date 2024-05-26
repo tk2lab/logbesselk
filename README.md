@@ -14,7 +14,7 @@ TAKEKAWA Takashi <takekawa@tk2lab.org>
 
 ### Require
 - Python (>=3.10)
-- Tensorflow (>=2.9)
+- Tensorflow (>=2.8)
 
 ### Installation
 ```shell
