@@ -18,18 +18,16 @@ jobs:
         with:
             python-version: '3.10'
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-            version: 1.3.2
-            virtualenvs-create: true
-            virtualenvs-in-project: true
+      - name: Install rye
+        run: |
+          curl -sSf https://rye-up.com/get | RYE_INSTALL_OPTION="--yes" bash
+          source $HOME/.rye/env
 
       - name: Install Decendencies
-        run: poetry install
+        run: rye sync
 
       - name: Build package
-        run: poetry build
+        run: rye build
 
       - name: Publish package
-        run: poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}
+        run: rye publish --token ${{ secrets.PYPI_TOKEN }}

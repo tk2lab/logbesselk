@@ -1,73 +1,102 @@
-[tool.poetry]
+[project]
 name = "logbesselk"
-version = "3.3.0"
+version = "3.3.1"
 description = "Provide function to calculate the modified Bessel function of the second kind"
 license = "Apache-2.0"
-authors = ["TAKEKAWA Takashi <takekawa@tk2lab.org>"]
+authors = [
+    { name = "TAKEKAWA Takashi", email = "takekawa@tk2lab.org" }
+]
 readme = "README.md"
 repository = "https://github.com/tk2lab/logbesselk"
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+requires-python = ">=3.10"
+
+[project.optional-dependences]
+jax = [
+    "jax>=0.4",
+    "jaxlib>=0.4",
+]
+tensorflow = [
+    "tensorflow>=2.8",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.dependencies]
-python = ">=3.8,<3.13"
-#tensorflow = ">=2.6,<2.12"
-#jax = "^0.2+cuda"
+[tool.rye]
+manaed = true
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-force_grid_wrap = 1
-
-[tool.flake8]
-max-line-length = 88
-extend-ignore = ["E203"]
+[[tool.rye.sources]]
+name = "jax"
+url = "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
+type = "find-links"
 
 [tool.pytest.ini_options]
 markers = [
     "vec",
 ]
 
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "N", "I"]
+
+[ttol.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-wrap-aliases = true
+split-on-trailing-comma = true
+
 [tool.tox]
 legacy_tox_ini = """
 [tox]
 min_version = 4.0
-isolated_build = True
+rye_discovery = true
 env_list = 
-    py{310,311,312}-jax{3,4}
-    py{310,311,312}-tf{29,210,211,212,213,214,215,216}
-    lint
+    py{310,311,312}-jax{latest,4}
+    py{310,311}-tf{latest,28,29,210,211,212,213,214,215,216}
+    py312-tf{latest,216}
     eval_tf
     eval_jax
 
 [gh-actions]
 python =
-    3.10: py310-jax3, py310-tf29
-    3.12: py312-jax4, py312-tf216
+    3.10: py310-jax4, py310-tf28
+    3.12: py312-jaxlatest, py312-tflatest
 
-[testenv:py{310,311,312}-jax{3,4}]
+[testenv:py{310,311,312}-jax{4,latest}]
 deps =
-    jax3: jax[cuda] (>=0.3,<0.4)
-    jax4: jax[cuda] (>=0.4,<0.5)
+    jaxlatest: jax[cuda12]
+    jax4: jax[cuda12] (>=0.4,<0.5)
     pytest
     pandas
-install_command =
-    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
 commands =
     {envpython} -m pytest tests/test_jax.py {posargs}
 
-[testenv:py{310,311,312}-tf{29,210,211,212,213,214,215,216}]
+[testenv:py{310,311,312}-tf{latest,28,29,210,211,212,213,214,215,216}]
 deps =
-    tf29: tensorflow (>=2.9,<2.10)
-    tf210: tensorflow (>=2.10,<2.11)
-    tf211: tensorflow (>=2.11,<2.12)
-    tf212: tensorflow (>=2.12,<2.13)
-    tf213: tensorflow (>=2.13,<2.14)
-    tf214: tensorflow (>=2.14,<2.15)
-    tf215: tensorflow (>=2.15,<2.16)
+    tflatest: tensorflow
     tf216: tensorflow (>=2.16,<2.17)
+    tf215: tensorflow (>=2.15,<2.16)
+    tf214: tensorflow (>=2.14,<2.15)
+    tf213: tensorflow (>=2.13,<2.14)
+    tf212: tensorflow (>=2.12,<2.13)
+    tf211: tensorflow (>=2.11,<2.12)
+    tf210: tensorflow (>=2.10,<2.11)
+    tf29: tensorflow (>=2.9,<2.10)
+    tf28: tensorflow (>=2.8,<2.9)
     pytest
     pandas
 commands =
@@ -75,10 +104,8 @@ commands =
 
 [testenv:eval_jax]
 deps =
-    jax[cuda]
+    jax[cuda12]
     pandas
-install_command =
-    pip install --upgrade -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html {opts} {packages}
 commands =
     {envpython} eval/eval_jax.py
 
