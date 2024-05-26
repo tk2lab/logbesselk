@@ -13,8 +13,8 @@ TAKEKAWA Takashi <takekawa@tk2lab.org>
 ## For Tensorflow
 
 ### Require
-- Python (>=3.8)
-- Tensorflow (>=2.6)
+- Python (>=3.10)
+- Tensorflow (>=2.9)
 
 ### Installation
 ```shell
@@ -25,15 +25,15 @@ pip install tensorflow logbesselk
 ```python
 import tensorflow as tf
 from logbesselk.tensorflow import log_bessel_k as logk
-from logbesselk.jax import bessel_ke as ke
-from logbesselk.jax import bessel_kratio as kratio
+from logbesselk.tensorflow import bessel_ke as ke
+from logbesselk.tensorflow import bessel_kratio as kratio
 
 v = 1.0
 x = 1.0
 a = logk(v, x)
 
-v = jnp.linspace(1, 10, 10)
-x = jnp.linspace(1, 10, 10)
+v = tf.linspace(1, 10, 10)
+x = tf.linspace(1, 10, 10)
 b = logk(v, x)
 
 # gradient
@@ -58,7 +58,7 @@ logdkdx = lambda v, x: log_abs_deriv_bessel_k(v, x, 0, 1)
 ## For jax
 
 ### Require
-- Python (>=3.8)
+- Python (>=3.10)
 - jax (>=0.3)
 
 ### Installation
