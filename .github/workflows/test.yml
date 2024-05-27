@@ -24,5 +24,6 @@ jobs:
 
     - name: Run tox
       run: |
+        rye pin ${{ matrix.python-version }}
         rye install tox-gh-actions --include-dep tox
         tox -- -x -m vec
