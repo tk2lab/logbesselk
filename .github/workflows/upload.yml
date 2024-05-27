@@ -14,15 +14,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-            python-version: '3.10'
-
       - name: Install rye
         uses: eifinger/setup-rye@v3
-        with:
-          enable-cache: true
 
       - name: Build
         run: |
