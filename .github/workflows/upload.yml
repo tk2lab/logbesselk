@@ -2,7 +2,8 @@ name: Publish package
 
 on:
   release:
-    types: [published]
+    types:
+      - published
 
 jobs:
   deploy:
@@ -19,11 +20,16 @@ jobs:
             python-version: '3.10'
 
       - name: Install rye
-        run: curl -sSf https://rye.astral.sh/get | RYE_INSTALL_OPTION="--yes" bash
+        uses: eifinger/setup-rye@v3
+        with:
+          enable-cache: true
 
-      - name: Publish package
+      - name: Build
         run: |
-          source $HOME/.rye/env
           rye sync
           rye build
-          rye publish --token ${{ secrets.PYPI_TOKEN }}
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
