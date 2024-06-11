@@ -32,9 +32,6 @@ def log_bessel_k(v, x):
     Combination of Integrate, Continued fraction and Asymptotic expansion.
     """
 
-    def small_x_case():
-        return log_k_small_x(v, x)
-
     def large_x_case():
         def small_v_case():
             n = fround(v)
@@ -47,17 +44,15 @@ def log_bessel_k(v, x):
             v_ = lax.cond(large_v, lambda: v.astype(dtype), lambda: dtype(0))
             return log_k_large_v(v_, x)
 
+        dtype = result_type(v, x)
+        large_v_ = v >= 25
+        small_v = finite & ~large_v_
+        large_v = finite & large_v_
         return lax.cond(small_v, small_v_case, large_v_case)
 
-    dtype = result_type(v, x)
-    finite = is_finite(v) & is_finite(x) & (x > 0)
-    large_v_ = v >= 25
-    large_x_ = x >= 100
-
-    small_x = finite & ~large_x_
-    small_v = finite & large_x_ & ~large_v_
-    large_v = finite & large_x_ & large_v_
-    return lax.cond(small_x, small_x_case, large_x_case)
+    out = log_k_small_x(v, x)
+    finite = is_finite(out)
+    return lax.cond(finite, lambda: out, large_x_case)
 
 
 def bessel_kratio(v, x, d=1):
